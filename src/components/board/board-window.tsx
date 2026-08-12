@@ -13,9 +13,10 @@ import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BOARDS, boardLabel, type BoardId } from "@/lib/boards";
-import { isWorkDragging, startWorkDrag } from "@/lib/work-drag";
 import { AppWindow } from "@/components/window/app-window";
+import { BOARDS, boardLabel, type BoardId } from "@/lib/boards";
+import { cn } from "@/lib/utils";
+import { isWorkDragging, startWorkDrag } from "@/lib/work-drag";
 
 const DRAG_THRESHOLD = 5;
 
@@ -49,6 +50,7 @@ export function BoardWindow({
   const move = useMutation(api.works.move);
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
+  const [selectedId, setSelectedId] = useState<Id<"works"> | null>(null);
   const BoardIcon = BOARDS.find((b) => b.id === board)?.Icon;
   const count = works?.length;
   const pendingRef = useRef(false);
@@ -150,30 +152,48 @@ export function BoardWindow({
       }
       {...props}
     >
-      <form onSubmit={onAdd} className="field-row" style={{ marginBottom: 8 }}>
+      <form onSubmit={onAdd} className="field-row board-add-form">
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="New work"
           disabled={busy}
-          style={{ flex: 1 }}
+          className="flex-1"
         />
-        <Button type="submit" disabled={busy || title.trim().length === 0}>
+        <Button
+          type="submit"
+          className="default"
+          disabled={busy || title.trim().length === 0}
+        >
           Add
         </Button>
       </form>
       <div className="sunken-panel board-list" data-board-drop={board}>
         {works === undefined ? (
-          <div className="p-1">Loading...</div>
+          <div className="board-loading">Loading list...</div>
         ) : works.length === 0 ? (
-          <div className="p-1">No works.</div>
+          <div className="board-empty">
+            {BoardIcon ? <BoardIcon size={32} /> : null}
+            <div>This list is empty.</div>
+            <div className="board-empty-hint">
+              Type a title above and press Add.
+            </div>
+          </div>
         ) : (
           <ul className="flex flex-col">
             {works.map((work) => (
               <li
                 key={work._id}
-                className="work-row flex items-center gap-2 border-b border-[#dfdfdf] px-1 py-1 last:border-b-0"
-                onPointerDown={(e) => onRowPointerDown(e, work)}
+                className={cn(
+                  "work-row flex items-center gap-2 border-b border-[#dfdfdf] px-1 py-1 last:border-b-0",
+                  selectedId === work._id && "selected",
+                )}
+                tabIndex={0}
+                onPointerDown={(e) => {
+                  setSelectedId(work._id);
+                  onRowPointerDown(e, work);
+                }}
+                onFocus={() => setSelectedId(work._id)}
               >
                 <span className="flex-1 break-words">{work.title}</span>
                 <Button

@@ -2,6 +2,7 @@
 
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useEffect, useRef } from "react";
+import { WindowsXPLogOff } from "react-old-icons";
 import { BOARDS, type BoardId } from "@/lib/boards";
 
 type StartMenuProps = {
@@ -36,6 +37,9 @@ export function StartMenu({ open, onClose, onOpenBoard }: StartMenuProps) {
 
   return (
     <div ref={ref} className="start-menu" role="menu" aria-label="Start Menu">
+      <div className="start-menu-banner" aria-hidden="true">
+        <span className="start-menu-banner-text">Windows 98</span>
+      </div>
       <ul className="start-menu-list">
         {BOARDS.map((board) => (
           <li key={board.id}>
@@ -66,7 +70,9 @@ export function StartMenu({ open, onClose, onOpenBoard }: StartMenuProps) {
               onClose();
             }}
           >
-            <span className="start-menu-item-icon" />
+            <span className="start-menu-item-icon">
+              <WindowsXPLogOff size={24} />
+            </span>
             <span>Sign out</span>
           </button>
         </li>

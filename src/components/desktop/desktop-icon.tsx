@@ -33,6 +33,13 @@ export function DesktopIcon({
         e.stopPropagation();
         onOpen();
       }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          onOpen();
+        }
+      }}
       onContextMenu={onContextMenu}
     >
       <Icon size={32} />
