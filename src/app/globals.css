@@ -2,25 +2,9 @@
 @import "shadcn/tailwind.css";
 @import "../styles/98.css";
 
-@font-face {
-  font-family: "Pixelated MS Sans Serif";
-  font-style: normal;
-  font-weight: 400;
-  src: url("/fonts/ms_sans_serif.woff2") format("woff2"),
-    url("/fonts/ms_sans_serif.woff") format("woff");
-}
-
-@font-face {
-  font-family: "Pixelated MS Sans Serif";
-  font-style: normal;
-  font-weight: 700;
-  src: url("/fonts/ms_sans_serif_bold.woff2") format("woff2"),
-    url("/fonts/ms_sans_serif_bold.woff") format("woff");
-}
-
 @theme inline {
-  --font-sans: "Pixelated MS Sans Serif", Arial, sans-serif;
-  --font-heading: "Pixelated MS Sans Serif", Arial, sans-serif;
+  --font-sans: "Roboto", Arial, sans-serif;
+  --font-heading: "Roboto", Arial, sans-serif;
   --color-desktop: #008080;
   --color-win-face: #c0c0c0;
   --color-win-title-from: #000080;
@@ -87,12 +71,28 @@
     overflow: hidden;
     margin: 0;
     padding: 0;
-    font-family: "Pixelated MS Sans Serif", Arial, sans-serif;
     font-size: 11px;
     background: var(--desktop);
     color: #000000;
-    -webkit-font-smoothing: none;
   }
+}
+
+html,
+body,
+.title-bar,
+.window,
+button,
+input,
+label,
+legend,
+li[role="tab"],
+option,
+select,
+table,
+textarea,
+ul.tree-view {
+  font-family: "Roboto", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 .app-window {
