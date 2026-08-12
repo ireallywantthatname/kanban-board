@@ -36,9 +36,6 @@ export function StartMenu({ open, onClose, onOpenBoard }: StartMenuProps) {
 
   return (
     <div ref={ref} className="start-menu" role="menu" aria-label="Start Menu">
-      <div className="start-menu-brand">
-        <span>Kanban98</span>
-      </div>
       <ul className="start-menu-list">
         {BOARDS.map((board) => (
           <li key={board.id}>
