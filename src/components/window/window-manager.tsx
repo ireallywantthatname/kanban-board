@@ -1,118 +1,285 @@
 "use client";
 
-import ReactGridLayout, {
-  useContainerWidth,
-  type Layout,
-  type LayoutItem,
-} from "react-grid-layout";
-import { noOverlapCompactor } from "react-grid-layout/core";
-import { useCallback, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { BoardWindow } from "@/components/board/board-window";
 import type { BoardId } from "@/lib/boards";
 
-const COLS = 24;
-const ROW_HEIGHT = 20;
+const MIN_W = 280;
+const MIN_H = 200;
+const DEFAULT_W = 520;
+const DEFAULT_H = 360;
+const CASCADE = 24;
+const ORIGIN = 32;
+const TITLE_SLACK = 40;
 
-function defaultItem(board: BoardId, index: number): LayoutItem {
-  const offset = (index % 4) * 2;
-  return {
-    i: board,
-    x: 4 + offset,
-    y: offset,
-    w: 10,
-    h: 14,
-    minW: 6,
-    minH: 8,
-  };
-}
+type WindowGeom = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
+
+type DragState = {
+  board: BoardId;
+  kind: "move" | "resize";
+  startX: number;
+  startY: number;
+  origX: number;
+  origY: number;
+  origW: number;
+  origH: number;
+};
 
 type WindowManagerProps = {
   openBoards: BoardId[];
   onClose: (board: BoardId) => void;
 };
 
+function defaultGeom(index: number, containerW: number, containerH: number): WindowGeom {
+  const offset = (index % 4) * CASCADE;
+  const w = Math.max(MIN_W, Math.min(DEFAULT_W, Math.max(containerW - 64, MIN_W)));
+  const h = Math.max(MIN_H, Math.min(DEFAULT_H, Math.max(containerH - 64, MIN_H)));
+  return {
+    x: ORIGIN + offset,
+    y: ORIGIN + offset,
+    w,
+    h,
+  };
+}
+
+function clampMove(
+  x: number,
+  y: number,
+  w: number,
+  containerW: number,
+  containerH: number,
+): { x: number; y: number } {
+  const maxX = Math.max(containerW - TITLE_SLACK, 0);
+  const minX = Math.min(TITLE_SLACK - w, 0);
+  const maxY = Math.max(containerH - TITLE_SLACK, 0);
+  return {
+    x: Math.min(maxX, Math.max(minX, x)),
+    y: Math.min(maxY, Math.max(0, y)),
+  };
+}
+
 export function WindowManager({ openBoards, onClose }: WindowManagerProps) {
-  const { width, containerRef, mounted } = useContainerWidth({
-    initialWidth: 1280,
-  });
-  const [layout, setLayout] = useState<Layout>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<DragState | null>(null);
+  const prevOpenRef = useRef<BoardId[]>([]);
+  const [geom, setGeom] = useState<Partial<Record<BoardId, WindowGeom>>>({});
   const [focusOrder, setFocusOrder] = useState<BoardId[]>([]);
 
-  const syncedLayout = useMemo((): Layout => {
-    return openBoards.map((board, index) => {
-      const existing = layout.find((l) => l.i === board);
-      return existing ?? defaultItem(board, index);
-    });
-  }, [openBoards, layout]);
-
-  const activeBoard = focusOrder.filter((b) => openBoards.includes(b)).at(-1);
+  const measure = useCallback(() => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    return {
+      w: rect?.width ?? 1280,
+      h: rect?.height ?? 720,
+    };
+  }, []);
 
   const focus = useCallback((board: BoardId) => {
     setFocusOrder((prev) => [...prev.filter((b) => b !== board), board]);
   }, []);
 
+  useEffect(() => {
+    const prev = prevOpenRef.current;
+    const added = openBoards.filter((b) => !prev.includes(b));
+    const removed = prev.filter((b) => !openBoards.includes(b));
+    prevOpenRef.current = openBoards;
+
+    if (added.length > 0) {
+      const { w: cw, h: ch } = measure();
+      setGeom((prevGeom) => {
+        const next = { ...prevGeom };
+        let cascadeIndex = openBoards.length - added.length;
+        for (const board of added) {
+          if (!next[board]) {
+            next[board] = defaultGeom(cascadeIndex, cw, ch);
+          }
+          cascadeIndex += 1;
+        }
+        return next;
+      });
+      setFocusOrder((prevFocus) => {
+        let next = prevFocus.filter((b) => openBoards.includes(b));
+        for (const board of added) {
+          next = [...next.filter((b) => b !== board), board];
+        }
+        return next;
+      });
+    }
+
+    if (removed.length > 0) {
+      setFocusOrder((prevFocus) =>
+        prevFocus.filter((b) => openBoards.includes(b)),
+      );
+      if (dragRef.current && removed.includes(dragRef.current.board)) {
+        dragRef.current = null;
+      }
+    }
+  }, [openBoards, measure]);
+
+  useEffect(() => {
+    function onMove(e: PointerEvent) {
+      const drag = dragRef.current;
+      if (!drag) return;
+      const { w: cw, h: ch } = measure();
+      const dx = e.clientX - drag.startX;
+      const dy = e.clientY - drag.startY;
+
+      if (drag.kind === "move") {
+        const next = clampMove(
+          drag.origX + dx,
+          drag.origY + dy,
+          drag.origW,
+          cw,
+          ch,
+        );
+        setGeom((prev) => ({
+          ...prev,
+          [drag.board]: {
+            x: next.x,
+            y: next.y,
+            w: drag.origW,
+            h: drag.origH,
+          },
+        }));
+      } else {
+        setGeom((prev) => ({
+          ...prev,
+          [drag.board]: {
+            x: drag.origX,
+            y: drag.origY,
+            w: Math.max(MIN_W, drag.origW + dx),
+            h: Math.max(MIN_H, drag.origH + dy),
+          },
+        }));
+      }
+    }
+
+    function onUp() {
+      dragRef.current = null;
+    }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+  }, [measure]);
+
+  const resolvedGeom = useMemo(() => {
+    const { w: cw, h: ch } = measure();
+    const result: Partial<Record<BoardId, WindowGeom>> = {};
+    openBoards.forEach((board, index) => {
+      result[board] = geom[board] ?? defaultGeom(index, cw, ch);
+    });
+    return result;
+  }, [openBoards, geom, measure]);
+
+  const activeBoard =
+    focusOrder.filter((b) => openBoards.includes(b)).at(-1) ??
+    openBoards.at(-1);
+
   const zIndexFor = useCallback(
     (board: BoardId) => {
       const idx = focusOrder.lastIndexOf(board);
-      return 20 + (idx < 0 ? 0 : idx);
+      if (idx >= 0) return 20 + idx;
+      const openIdx = openBoards.indexOf(board);
+      return 20 + (openIdx < 0 ? 0 : openIdx);
     },
-    [focusOrder],
+    [focusOrder, openBoards],
   );
 
-  if (openBoards.length === 0) {
-    return (
-      <div
-        ref={containerRef}
-        className="pointer-events-none absolute inset-0"
-      />
-    );
-  }
+  const startMove = useCallback(
+    (e: ReactPointerEvent<HTMLElement>, board: BoardId) => {
+      const g = resolvedGeom[board];
+      if (!g) return;
+      focus(board);
+      dragRef.current = {
+        board,
+        kind: "move",
+        startX: e.clientX,
+        startY: e.clientY,
+        origX: g.x,
+        origY: g.y,
+        origW: g.w,
+        origH: g.h,
+      };
+      if (!geom[board]) {
+        setGeom((prev) => ({ ...prev, [board]: g }));
+      }
+    },
+    [focus, geom, resolvedGeom],
+  );
+
+  const startResize = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>, board: BoardId) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const g = resolvedGeom[board];
+      if (!g) return;
+      focus(board);
+      dragRef.current = {
+        board,
+        kind: "resize",
+        startX: e.clientX,
+        startY: e.clientY,
+        origX: g.x,
+        origY: g.y,
+        origW: g.w,
+        origH: g.h,
+      };
+      if (!geom[board]) {
+        setGeom((prev) => ({ ...prev, [board]: g }));
+      }
+    },
+    [focus, geom, resolvedGeom],
+  );
 
   return (
-    <div ref={containerRef} className="absolute inset-0">
-      {mounted && width > 0 ? (
-        <ReactGridLayout
-          width={width}
-          layout={syncedLayout}
-          gridConfig={{
-            cols: COLS,
-            rowHeight: ROW_HEIGHT,
-            margin: [8, 8],
-            containerPadding: [8, 8],
-          }}
-          dragConfig={{
-            enabled: true,
-            handle: ".win-titlebar",
-            cancel: ".win-title-btn,input,button,textarea,a",
-          }}
-          resizeConfig={{
-            enabled: true,
-            handles: ["se"],
-          }}
-          compactor={noOverlapCompactor}
-          onLayoutChange={(next) => setLayout(next)}
-          onDragStart={(_layout, item) => {
-            if (item) focus(item.i as BoardId);
-          }}
-          autoSize={false}
-          style={{ minHeight: "100%" }}
-        >
-          {openBoards.map((board) => (
+    <div ref={containerRef} className="absolute inset-0 overflow-hidden">
+      {openBoards.map((board) => {
+        const g = resolvedGeom[board];
+        if (!g) return null;
+        return (
+          <div
+            key={board}
+            className="absolute"
+            style={{
+              left: g.x,
+              top: g.y,
+              width: g.w,
+              height: g.h,
+              zIndex: zIndexFor(board),
+            }}
+            onPointerDown={() => focus(board)}
+          >
+            <BoardWindow
+              board={board}
+              onClose={() => onClose(board)}
+              active={activeBoard === board}
+              className="h-full w-full"
+              onTitlePointerDown={(e) => startMove(e, board)}
+            />
             <div
-              key={board}
-              style={{ zIndex: zIndexFor(board) }}
-              onMouseDown={() => focus(board)}
-            >
-              <BoardWindow
-                board={board}
-                onClose={() => onClose(board)}
-                active={activeBoard === board}
-                className="h-full w-full"
-              />
-            </div>
-          ))}
-        </ReactGridLayout>
-      ) : null}
+              className="win-resize-se"
+              onPointerDown={(e) => startResize(e, board)}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
