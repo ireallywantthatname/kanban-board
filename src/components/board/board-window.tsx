@@ -11,15 +11,23 @@ import { AppWindow } from "@/components/window/app-window";
 type BoardWindowProps = HTMLAttributes<HTMLDivElement> & {
   board: BoardId;
   onClose: () => void;
+  onMinimize?: () => void;
+  onMaximize?: () => void;
   active?: boolean;
+  maximized?: boolean;
   onTitlePointerDown?: (e: PointerEvent<HTMLDivElement>) => void;
+  onTitleDoubleClick?: () => void;
 };
 
 export function BoardWindow({
   board,
   onClose,
+  onMinimize,
+  onMaximize,
   active,
+  maximized,
   onTitlePointerDown,
+  onTitleDoubleClick,
   className,
   style,
   ...props
@@ -30,6 +38,7 @@ export function BoardWindow({
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const BoardIcon = BOARDS.find((b) => b.id === board)?.Icon;
+  const count = works?.length;
 
   async function onAdd(e: FormEvent) {
     e.preventDefault();
@@ -48,25 +57,39 @@ export function BoardWindow({
     <AppWindow
       title={boardLabel(board)}
       onClose={onClose}
+      onMinimize={onMinimize}
+      onMaximize={onMaximize}
       active={active}
-      icon={BoardIcon ? <BoardIcon size={12} /> : undefined}
+      maximized={maximized}
+      icon={BoardIcon ? <BoardIcon size={16} /> : undefined}
       className={className}
       style={style}
       onTitlePointerDown={onTitlePointerDown}
+      onTitleDoubleClick={onTitleDoubleClick}
+      statusBar={
+        <p className="status-bar-field">
+          {works === undefined
+            ? "Loading..."
+            : count === 1
+              ? "1 item"
+              : `${count ?? 0} items`}
+        </p>
+      }
       {...props}
     >
-      <form onSubmit={onAdd} className="mb-2 flex gap-2">
+      <form onSubmit={onAdd} className="field-row" style={{ marginBottom: 8 }}>
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="New work"
           disabled={busy}
+          style={{ flex: 1 }}
         />
         <Button type="submit" disabled={busy || title.trim().length === 0}>
           Add
         </Button>
       </form>
-      <div className="win-field min-h-[120px] flex-1 overflow-auto p-1">
+      <div className="sunken-panel board-list">
         {works === undefined ? (
           <div className="p-1">Loading...</div>
         ) : works.length === 0 ? (

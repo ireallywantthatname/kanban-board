@@ -2,19 +2,38 @@
 
 import type { ComponentType } from "react";
 import type { OldIconProps } from "react-old-icons";
+import { cn } from "@/lib/utils";
 
 type DesktopIconProps = {
   label: string;
   Icon: ComponentType<OldIconProps>;
+  selected?: boolean;
+  onSelect: () => void;
   onOpen: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
 };
 
-export function DesktopIcon({ label, Icon, onOpen }: DesktopIconProps) {
+export function DesktopIcon({
+  label,
+  Icon,
+  selected = false,
+  onSelect,
+  onOpen,
+  onContextMenu,
+}: DesktopIconProps) {
   return (
     <button
       type="button"
-      onClick={onOpen}
-      className="flex w-[88px] flex-col items-center gap-1 border-0 bg-transparent p-1 outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-dashed focus-visible:outline-white"
+      className={cn("desktop-icon", selected && "selected")}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect();
+      }}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        onOpen();
+      }}
+      onContextMenu={onContextMenu}
     >
       <Icon size={32} />
       <span className="desktop-icon-label">{label}</span>

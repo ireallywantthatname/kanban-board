@@ -10,6 +10,7 @@ import {
 } from "react";
 import { BoardWindow } from "@/components/board/board-window";
 import type { BoardId } from "@/lib/boards";
+import type { ResizeEdge, WindowFrame, WindowGeom } from "@/lib/window-shell";
 
 const MIN_W = 280;
 const MIN_H = 200;
@@ -19,27 +20,24 @@ const CASCADE = 24;
 const ORIGIN = 32;
 const TITLE_SLACK = 40;
 
-type WindowGeom = {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-};
-
 type DragState = {
   board: BoardId;
   kind: "move" | "resize";
+  edge?: ResizeEdge;
   startX: number;
   startY: number;
-  origX: number;
-  origY: number;
-  origW: number;
-  origH: number;
+  orig: WindowGeom;
 };
 
 type WindowManagerProps = {
-  openBoards: BoardId[];
+  frames: WindowFrame[];
+  focusOrder: BoardId[];
+  activeId: BoardId | null;
   onClose: (board: BoardId) => void;
+  onFocus: (board: BoardId) => void;
+  onMinimize: (board: BoardId) => void;
+  onToggleMaximize: (board: BoardId) => void;
+  onGeomChange: (board: BoardId, geom: WindowGeom) => void;
 };
 
 function defaultGeom(index: number, containerW: number, containerH: number): WindowGeom {
@@ -70,12 +68,74 @@ function clampMove(
   };
 }
 
-export function WindowManager({ openBoards, onClose }: WindowManagerProps) {
+function applyResize(
+  edge: ResizeEdge,
+  orig: WindowGeom,
+  dx: number,
+  dy: number,
+  containerW: number,
+  containerH: number,
+): WindowGeom {
+  let { x, y, w, h } = orig;
+
+  if (edge.includes("e")) {
+    w = Math.max(MIN_W, orig.w + dx);
+  }
+  if (edge.includes("s")) {
+    h = Math.max(MIN_H, orig.h + dy);
+  }
+  if (edge.includes("w")) {
+    const nextW = Math.max(MIN_W, orig.w - dx);
+    x = orig.x + (orig.w - nextW);
+    w = nextW;
+  }
+  if (edge.includes("n")) {
+    const nextH = Math.max(MIN_H, orig.h - dy);
+    y = orig.y + (orig.h - nextH);
+    h = nextH;
+  }
+
+  if (x + w > containerW) {
+    if (edge.includes("e")) w = Math.max(MIN_W, containerW - x);
+    else x = Math.max(0, containerW - w);
+  }
+  if (y + h > containerH) {
+    if (edge.includes("s")) h = Math.max(MIN_H, containerH - y);
+    else y = Math.max(0, containerH - h);
+  }
+  if (x < 0) {
+    if (edge.includes("w")) {
+      w = Math.max(MIN_W, w + x);
+      x = 0;
+    } else {
+      x = 0;
+    }
+  }
+  if (y < 0) {
+    if (edge.includes("n")) {
+      h = Math.max(MIN_H, h + y);
+      y = 0;
+    } else {
+      y = 0;
+    }
+  }
+
+  return { x, y, w, h };
+}
+
+export function WindowManager({
+  frames,
+  focusOrder,
+  activeId,
+  onClose,
+  onFocus,
+  onMinimize,
+  onToggleMaximize,
+  onGeomChange,
+}: WindowManagerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
-  const prevOpenRef = useRef<BoardId[]>([]);
-  const [geom, setGeom] = useState<Partial<Record<BoardId, WindowGeom>>>({});
-  const [focusOrder, setFocusOrder] = useState<BoardId[]>([]);
+  const [localGeom, setLocalGeom] = useState<Partial<Record<BoardId, WindowGeom>>>({});
 
   const measure = useCallback(() => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -85,47 +145,20 @@ export function WindowManager({ openBoards, onClose }: WindowManagerProps) {
     };
   }, []);
 
-  const focus = useCallback((board: BoardId) => {
-    setFocusOrder((prev) => [...prev.filter((b) => b !== board), board]);
-  }, []);
-
   useEffect(() => {
-    const prev = prevOpenRef.current;
-    const added = openBoards.filter((b) => !prev.includes(b));
-    const removed = prev.filter((b) => !openBoards.includes(b));
-    prevOpenRef.current = openBoards;
-
-    if (added.length > 0) {
-      const { w: cw, h: ch } = measure();
-      setGeom((prevGeom) => {
-        const next = { ...prevGeom };
-        let cascadeIndex = openBoards.length - added.length;
-        for (const board of added) {
-          if (!next[board]) {
-            next[board] = defaultGeom(cascadeIndex, cw, ch);
-          }
-          cascadeIndex += 1;
+    const openIds = new Set(frames.map((f) => f.id));
+    setLocalGeom((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const key of Object.keys(next) as BoardId[]) {
+        if (!openIds.has(key)) {
+          delete next[key];
+          changed = true;
         }
-        return next;
-      });
-      setFocusOrder((prevFocus) => {
-        let next = prevFocus.filter((b) => openBoards.includes(b));
-        for (const board of added) {
-          next = [...next.filter((b) => b !== board), board];
-        }
-        return next;
-      });
-    }
-
-    if (removed.length > 0) {
-      setFocusOrder((prevFocus) =>
-        prevFocus.filter((b) => openBoards.includes(b)),
-      );
-      if (dragRef.current && removed.includes(dragRef.current.board)) {
-        dragRef.current = null;
       }
-    }
-  }, [openBoards, measure]);
+      return changed ? next : prev;
+    });
+  }, [frames]);
 
   useEffect(() => {
     function onMove(e: PointerEvent) {
@@ -135,38 +168,26 @@ export function WindowManager({ openBoards, onClose }: WindowManagerProps) {
       const dx = e.clientX - drag.startX;
       const dy = e.clientY - drag.startY;
 
+      let next: WindowGeom;
       if (drag.kind === "move") {
-        const next = clampMove(
-          drag.origX + dx,
-          drag.origY + dy,
-          drag.origW,
-          cw,
-          ch,
-        );
-        setGeom((prev) => ({
-          ...prev,
-          [drag.board]: {
-            x: next.x,
-            y: next.y,
-            w: drag.origW,
-            h: drag.origH,
-          },
-        }));
+        const pos = clampMove(drag.orig.x + dx, drag.orig.y + dy, drag.orig.w, cw, ch);
+        next = { x: pos.x, y: pos.y, w: drag.orig.w, h: drag.orig.h };
       } else {
-        setGeom((prev) => ({
-          ...prev,
-          [drag.board]: {
-            x: drag.origX,
-            y: drag.origY,
-            w: Math.max(MIN_W, drag.origW + dx),
-            h: Math.max(MIN_H, drag.origH + dy),
-          },
-        }));
+        next = applyResize(drag.edge ?? "se", drag.orig, dx, dy, cw, ch);
       }
+
+      setLocalGeom((prev) => ({ ...prev, [drag.board]: next }));
     }
 
     function onUp() {
+      const drag = dragRef.current;
+      if (!drag) return;
       dragRef.current = null;
+      setLocalGeom((prev) => {
+        const g = prev[drag.board];
+        if (g) onGeomChange(drag.board, g);
+        return prev;
+      });
     }
 
     window.addEventListener("pointermove", onMove);
@@ -177,106 +198,116 @@ export function WindowManager({ openBoards, onClose }: WindowManagerProps) {
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
     };
-  }, [measure]);
+  }, [measure, onGeomChange]);
 
-  const resolvedGeom = useMemo(() => {
+  const resolved = useMemo(() => {
     const { w: cw, h: ch } = measure();
     const result: Partial<Record<BoardId, WindowGeom>> = {};
-    openBoards.forEach((board, index) => {
-      result[board] = geom[board] ?? defaultGeom(index, cw, ch);
+    frames.forEach((frame, index) => {
+      if (frame.maximized) {
+        result[frame.id] = { x: 0, y: 0, w: cw, h: ch };
+        return;
+      }
+      result[frame.id] =
+        localGeom[frame.id] ??
+        frame.geom ??
+        defaultGeom(index, cw, ch);
     });
     return result;
-  }, [openBoards, geom, measure]);
-
-  const activeBoard =
-    focusOrder.filter((b) => openBoards.includes(b)).at(-1) ??
-    openBoards.at(-1);
+  }, [frames, localGeom, measure]);
 
   const zIndexFor = useCallback(
     (board: BoardId) => {
       const idx = focusOrder.lastIndexOf(board);
       if (idx >= 0) return 20 + idx;
-      const openIdx = openBoards.indexOf(board);
+      const openIdx = frames.findIndex((f) => f.id === board);
       return 20 + (openIdx < 0 ? 0 : openIdx);
     },
-    [focusOrder, openBoards],
+    [focusOrder, frames],
   );
 
   const startMove = useCallback(
     (e: ReactPointerEvent<HTMLElement>, board: BoardId) => {
-      const g = resolvedGeom[board];
+      const frame = frames.find((f) => f.id === board);
+      if (!frame || frame.maximized || frame.minimized) return;
+      const g = resolved[board];
       if (!g) return;
-      focus(board);
+      onFocus(board);
       dragRef.current = {
         board,
         kind: "move",
         startX: e.clientX,
         startY: e.clientY,
-        origX: g.x,
-        origY: g.y,
-        origW: g.w,
-        origH: g.h,
+        orig: g,
       };
-      if (!geom[board]) {
-        setGeom((prev) => ({ ...prev, [board]: g }));
-      }
+      setLocalGeom((prev) => ({ ...prev, [board]: g }));
     },
-    [focus, geom, resolvedGeom],
+    [frames, onFocus, resolved],
   );
 
   const startResize = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>, board: BoardId) => {
+    (e: ReactPointerEvent<HTMLDivElement>, board: BoardId, edge: ResizeEdge) => {
       e.stopPropagation();
       e.preventDefault();
-      const g = resolvedGeom[board];
+      const frame = frames.find((f) => f.id === board);
+      if (!frame || frame.maximized || frame.minimized) return;
+      const g = resolved[board];
       if (!g) return;
-      focus(board);
+      onFocus(board);
       dragRef.current = {
         board,
         kind: "resize",
+        edge,
         startX: e.clientX,
         startY: e.clientY,
-        origX: g.x,
-        origY: g.y,
-        origW: g.w,
-        origH: g.h,
+        orig: g,
       };
-      if (!geom[board]) {
-        setGeom((prev) => ({ ...prev, [board]: g }));
-      }
+      setLocalGeom((prev) => ({ ...prev, [board]: g }));
     },
-    [focus, geom, resolvedGeom],
+    [frames, onFocus, resolved],
   );
+
+  const edges: ResizeEdge[] = ["n", "s", "e", "w", "ne", "nw", "se", "sw"];
 
   return (
     <div ref={containerRef} className="absolute inset-0 overflow-hidden">
-      {openBoards.map((board) => {
-        const g = resolvedGeom[board];
+      {frames.map((frame) => {
+        if (frame.minimized) return null;
+        const g = resolved[frame.id];
         if (!g) return null;
         return (
           <div
-            key={board}
+            key={frame.id}
             className="absolute"
             style={{
               left: g.x,
               top: g.y,
               width: g.w,
               height: g.h,
-              zIndex: zIndexFor(board),
+              zIndex: zIndexFor(frame.id),
             }}
-            onPointerDown={() => focus(board)}
+            onPointerDown={() => onFocus(frame.id)}
           >
             <BoardWindow
-              board={board}
-              onClose={() => onClose(board)}
-              active={activeBoard === board}
+              board={frame.id}
+              onClose={() => onClose(frame.id)}
+              onMinimize={() => onMinimize(frame.id)}
+              onMaximize={() => onToggleMaximize(frame.id)}
+              active={activeId === frame.id}
+              maximized={frame.maximized}
               className="h-full w-full"
-              onTitlePointerDown={(e) => startMove(e, board)}
+              onTitlePointerDown={(e) => startMove(e, frame.id)}
+              onTitleDoubleClick={() => onToggleMaximize(frame.id)}
             />
-            <div
-              className="win-resize-se"
-              onPointerDown={(e) => startResize(e, board)}
-            />
+            {!frame.maximized
+              ? edges.map((edge) => (
+                  <div
+                    key={edge}
+                    className={`win-resize win-resize-${edge}`}
+                    onPointerDown={(e) => startResize(e, frame.id, edge)}
+                  />
+                ))
+              : null}
           </div>
         );
       })}

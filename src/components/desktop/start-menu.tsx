@@ -1,18 +1,16 @@
 "use client";
 
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useQuery } from "convex/react";
 import { useEffect, useRef } from "react";
-import { api } from "../../../convex/_generated/api";
-import { Button } from "@/components/ui/button";
+import { BOARDS, type BoardId } from "@/lib/boards";
 
 type StartMenuProps = {
   open: boolean;
   onClose: () => void;
+  onOpenBoard: (board: BoardId) => void;
 };
 
-export function StartMenu({ open, onClose }: StartMenuProps) {
-  const user = useQuery(api.users.current);
+export function StartMenu({ open, onClose, onOpenBoard }: StartMenuProps) {
   const { signOut } = useAuthActions();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -23,38 +21,59 @@ export function StartMenu({ open, onClose }: StartMenuProps) {
         onClose();
       }
     }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
     document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
   }, [open, onClose]);
 
   if (!open) return null;
 
   return (
-    <div
-      ref={ref}
-      className="win-raised absolute bottom-full left-0 mb-0.5 flex w-56 flex-col"
-    >
-      <div className="flex items-stretch">
-        <div className="flex w-8 items-end justify-center bg-gradient-to-b from-[#000080] to-[#1084d0] pb-2">
-          <span className="rotate-180 text-[14px] tracking-widest text-white [writing-mode:vertical-rl]">
-            Kanban Board
-          </span>
-        </div>
-        <div className="flex flex-1 flex-col gap-2 p-2">
-          <div className="break-all text-[16px]">
-            {user?.email ?? user?.name ?? "User"}
-          </div>
-          <Button
+    <div ref={ref} className="start-menu" role="menu" aria-label="Start Menu">
+      <div className="start-menu-brand">
+        <span>Kanban98</span>
+      </div>
+      <ul className="start-menu-list">
+        {BOARDS.map((board) => (
+          <li key={board.id}>
+            <button
+              type="button"
+              className="start-menu-item"
+              role="menuitem"
+              onClick={() => {
+                onOpenBoard(board.id);
+                onClose();
+              }}
+            >
+              <span className="start-menu-item-icon">
+                <board.Icon size={24} />
+              </span>
+              <span>{board.label}</span>
+            </button>
+          </li>
+        ))}
+        <li className="start-menu-divider" role="separator" />
+        <li>
+          <button
             type="button"
+            className="start-menu-item"
+            role="menuitem"
             onClick={() => {
               void signOut();
               onClose();
             }}
           >
-            Sign out
-          </Button>
-        </div>
-      </div>
+            <span className="start-menu-item-icon" />
+            <span>Sign out</span>
+          </button>
+        </li>
+      </ul>
     </div>
   );
 }
