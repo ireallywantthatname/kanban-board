@@ -42,6 +42,7 @@
 }
 
 :root {
+  --ui-scale: 1.25;
   --background: #c0c0c0;
   --foreground: #000000;
   --card: #c0c0c0;
@@ -67,13 +68,22 @@
 @layer base {
   html,
   body {
-    height: 100%;
     overflow: hidden;
     margin: 0;
     padding: 0;
     font-size: 11px;
     background: var(--desktop);
     color: #000000;
+  }
+
+  html {
+    height: 100%;
+  }
+
+  body {
+    zoom: var(--ui-scale);
+    width: calc(100vw / var(--ui-scale));
+    height: calc(100vh / var(--ui-scale));
   }
 }
 
