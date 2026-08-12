@@ -262,6 +262,12 @@ body.work-dragging * {
   font-weight: 700;
 }
 
+.taskbar-start-button img {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
 .taskbar-start-button.active {
   box-shadow:
     inset -1px -1px #ffffff,

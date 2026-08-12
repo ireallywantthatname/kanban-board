@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { WindowsTaskbarAndStartMenu } from "react-old-icons";
+import Image from "next/image";
 import { BOARDS, boardLabel, type BoardId } from "@/lib/boards";
 import type { WindowFrame } from "@/lib/window-shell";
 import { cn } from "@/lib/utils";
@@ -31,7 +31,14 @@ export function Taskbar({
           className={cn("taskbar-start-button", menuOpen && "active")}
           onClick={() => setMenuOpen((v) => !v)}
         >
-          <WindowsTaskbarAndStartMenu size={16} />
+          <Image
+            src="/icons/windows-start.png"
+            alt=""
+            width={16}
+            height={16}
+            unoptimized
+            draggable={false}
+          />
           <span>Start</span>
         </button>
         <StartMenu
