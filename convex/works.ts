@@ -63,3 +63,23 @@ export const remove = mutation({
     return null;
   },
 });
+
+export const move = mutation({
+  args: {
+    id: v.id("works"),
+    board: boardValidator,
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx);
+    const work = await ctx.db.get(args.id);
+    if (!work || work.userId !== userId) {
+      throw new Error("Not found");
+    }
+    if (work.board === args.board) {
+      return null;
+    }
+    await ctx.db.patch(args.id, { board: args.board });
+    return null;
+  },
+});
