@@ -54,13 +54,18 @@ export function WindowManager({ openBoards, onClose }: WindowManagerProps) {
   const zIndexFor = useCallback(
     (board: BoardId) => {
       const idx = focusOrder.lastIndexOf(board);
-      return 10 + (idx < 0 ? 0 : idx);
+      return 20 + (idx < 0 ? 0 : idx);
     },
     [focusOrder],
   );
 
   if (openBoards.length === 0) {
-    return <div ref={containerRef} className="absolute inset-0" />;
+    return (
+      <div
+        ref={containerRef}
+        className="pointer-events-none absolute inset-0"
+      />
+    );
   }
 
   return (

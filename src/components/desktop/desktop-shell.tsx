@@ -44,7 +44,7 @@ export function DesktopShell() {
   return (
     <div className="flex h-full w-full flex-col bg-[#3a6ea5]">
       <div className="relative min-h-0 flex-1">
-        <div className="absolute top-2 left-2 z-10 flex flex-col gap-3">
+        <div className="absolute top-2 left-2 z-[5] flex flex-col gap-3">
           {BOARDS.map((board) => (
             <DesktopIcon
               key={board.id}
