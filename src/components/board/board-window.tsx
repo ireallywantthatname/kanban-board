@@ -5,7 +5,7 @@ import { FormEvent, useState, type PointerEvent, type HTMLAttributes } from "rea
 import { api } from "../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { boardLabel, type BoardId } from "@/lib/boards";
+import { BOARDS, boardLabel, type BoardId } from "@/lib/boards";
 import { AppWindow } from "@/components/window/app-window";
 
 type BoardWindowProps = HTMLAttributes<HTMLDivElement> & {
@@ -29,6 +29,7 @@ export function BoardWindow({
   const remove = useMutation(api.works.remove);
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
+  const BoardIcon = BOARDS.find((b) => b.id === board)?.Icon;
 
   async function onAdd(e: FormEvent) {
     e.preventDefault();
@@ -48,6 +49,7 @@ export function BoardWindow({
       title={boardLabel(board)}
       onClose={onClose}
       active={active}
+      icon={BoardIcon ? <BoardIcon size={12} /> : undefined}
       className={className}
       style={style}
       onTitlePointerDown={onTitlePointerDown}

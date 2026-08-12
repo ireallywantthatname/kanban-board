@@ -2,12 +2,18 @@
 
 import type { PointerEvent, ReactNode, HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
+import {
+  TitlebarCloseIcon,
+  TitlebarMaximizeIcon,
+  TitlebarMinimizeIcon,
+} from "@/components/window/titlebar-icons";
 
 type AppWindowProps = HTMLAttributes<HTMLDivElement> & {
   title: string;
   onClose?: () => void;
   children: ReactNode;
   active?: boolean;
+  icon?: ReactNode;
   onTitlePointerDown?: (e: PointerEvent<HTMLDivElement>) => void;
 };
 
@@ -16,6 +22,7 @@ export function AppWindow({
   onClose,
   children,
   active = true,
+  icon,
   onTitlePointerDown,
   className,
   style,
@@ -24,25 +31,43 @@ export function AppWindow({
   return (
     <div className={cn("win-window", className)} style={style} {...props}>
       <div
-        className="win-titlebar"
-        style={active ? undefined : { background: "#808080" }}
+        className={cn("win-titlebar", !active && "win-titlebar-inactive")}
         onPointerDown={onTitlePointerDown}
       >
-        <span className="win-titlebar-text flex-1">{title}</span>
-        {onClose ? (
+        <div className="win-titlebar-leading">
+          {icon ? <span className="win-title-icon">{icon}</span> : null}
+          <span className="win-titlebar-text">{title}</span>
+        </div>
+        <div className="win-title-controls">
           <button
             type="button"
             className="win-title-btn"
+            aria-label="Minimize"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <TitlebarMinimizeIcon />
+          </button>
+          <button
+            type="button"
+            className="win-title-btn"
+            aria-label="Maximize"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <TitlebarMaximizeIcon />
+          </button>
+          <button
+            type="button"
+            className="win-title-btn win-title-btn-close"
+            aria-label="Close"
             onClick={(e) => {
               e.stopPropagation();
-              onClose();
+              onClose?.();
             }}
             onPointerDown={(e) => e.stopPropagation()}
-            aria-label="Close"
           >
-            ×
+            <TitlebarCloseIcon />
           </button>
-        ) : null}
+        </div>
       </div>
       <div className="win-content">{children}</div>
     </div>

@@ -137,11 +137,37 @@
   align-items: center;
   justify-content: space-between;
   gap: 4px;
-  padding: 2px 2px 2px 3px;
-  height: 22px;
+  padding: 3px 2px 3px 3px;
   flex-shrink: 0;
   cursor: default;
   user-select: none;
+}
+
+.win-titlebar-inactive {
+  background: linear-gradient(to right, #808080, #b5b5b5);
+}
+
+.win-titlebar-leading {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.win-title-icon {
+  display: inline-flex;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.win-title-icon > * {
+  width: 12px;
+  height: 12px;
 }
 
 .win-titlebar-text {
@@ -150,7 +176,16 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1;
+  line-height: 12px;
+  font-size: 14px;
+  min-width: 0;
+}
+
+.win-title-controls {
+  display: flex;
+  align-items: flex-start;
+  flex-shrink: 0;
+  height: 14px;
 }
 
 .win-title-btn {
@@ -163,14 +198,18 @@
   justify-content: center;
   line-height: 1;
   padding: 0;
+  border: none;
   cursor: default;
   box-shadow:
     inset -1px -1px 0 #0a0a0a,
     inset 1px 1px 0 #ffffff,
     inset -2px -2px 0 #808080,
     inset 2px 2px 0 #dfdfdf;
-  font-size: 14px;
   flex-shrink: 0;
+}
+
+.win-title-btn-close {
+  margin-left: 2px;
 }
 
 .win-title-btn:active {
