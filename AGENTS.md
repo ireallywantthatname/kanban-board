@@ -1,9 +1,9 @@
-- Kanban Board is a simple kanban board with the design inspired by windows 2000.
+- Kanban Board is a simple kanban board with the design inspired by windows 98.
 - don't add any comments in the codebase.
 - keep the codebase minimal and simple.
 - always follow next.js conventions (e.g. <Image> instead of <img>).
 - always use bun.
-- always add shadcn components for composing the UI.
+- always use 98.css for composing the UI.
 - always use react-old-icons for icons.
 
 <!-- BEGIN:nextjs-agent-rules -->

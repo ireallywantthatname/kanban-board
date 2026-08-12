@@ -8,7 +8,7 @@ function Label({ className, ...props }: React.ComponentProps<"label">) {
   return (
     <label
       data-slot="label"
-      className={cn("text-[18px] leading-none select-none", className)}
+      className={cn("select-none", className)}
       {...props}
     />
   );

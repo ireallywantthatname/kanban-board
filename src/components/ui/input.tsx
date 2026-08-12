@@ -8,7 +8,7 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
     <InputPrimitive
       type={type}
       data-slot="input"
-      className={cn("win-input", className)}
+      className={cn("w-full", className)}
       {...props}
     />
   );

@@ -33,7 +33,7 @@ export function AuthWindow() {
       <div className="w-full max-w-sm">
         <AppWindow title="Kanban Board">
           <form onSubmit={onSubmit} className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1">
+            <div className="field-row-stacked">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -44,7 +44,7 @@ export function AuthWindow() {
                 disabled={busy}
               />
             </div>
-            <div className="flex flex-col gap-1">
+            <div className="field-row-stacked">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
@@ -58,8 +58,8 @@ export function AuthWindow() {
                 disabled={busy}
               />
             </div>
-            {error ? <div className="text-[#800000]">{error}</div> : null}
-            <div className="flex flex-wrap gap-2 pt-1">
+            {error ? <div style={{ color: "#800000" }}>{error}</div> : null}
+            <div className="field-row pt-1">
               <Button type="submit" disabled={busy}>
                 {flow === "signIn" ? "Sign in" : "Sign up"}
               </Button>
