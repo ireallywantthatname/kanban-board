@@ -1,12 +1,23 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { FormEvent, useState, type PointerEvent, type HTMLAttributes } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type HTMLAttributes,
+} from "react";
 import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BOARDS, boardLabel, type BoardId } from "@/lib/boards";
+import { isWorkDragging, startWorkDrag } from "@/lib/work-drag";
 import { AppWindow } from "@/components/window/app-window";
+
+const DRAG_THRESHOLD = 5;
 
 type BoardWindowProps = HTMLAttributes<HTMLDivElement> & {
   board: BoardId;
@@ -15,7 +26,7 @@ type BoardWindowProps = HTMLAttributes<HTMLDivElement> & {
   onMaximize?: () => void;
   active?: boolean;
   maximized?: boolean;
-  onTitlePointerDown?: (e: PointerEvent<HTMLDivElement>) => void;
+  onTitlePointerDown?: (e: ReactPointerEvent<HTMLDivElement>) => void;
   onTitleDoubleClick?: () => void;
 };
 
@@ -35,10 +46,72 @@ export function BoardWindow({
   const works = useQuery(api.works.list, { board });
   const create = useMutation(api.works.create);
   const remove = useMutation(api.works.remove);
+  const move = useMutation(api.works.move);
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const BoardIcon = BOARDS.find((b) => b.id === board)?.Icon;
   const count = works?.length;
+  const pendingRef = useRef(false);
+
+  const onDrop = useCallback(
+    async (
+      payload: { workId: Id<"works"> },
+      toBoard: BoardId,
+    ) => {
+      try {
+        await move({ id: payload.workId, board: toBoard });
+      } catch {
+        return;
+      }
+    },
+    [move],
+  );
+
+  function onRowPointerDown(
+    e: ReactPointerEvent<HTMLLIElement>,
+    work: { _id: Id<"works">; title: string },
+  ) {
+    if (e.button !== 0) return;
+    if ((e.target as HTMLElement).closest("button")) return;
+    if (isWorkDragging() || pendingRef.current) return;
+
+    const sourceEl = e.currentTarget;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    pendingRef.current = true;
+
+    const onMove = (ev: PointerEvent) => {
+      const dist = Math.hypot(ev.clientX - startX, ev.clientY - startY);
+      if (dist <= DRAG_THRESHOLD) return;
+      cleanupPending();
+      startWorkDrag(
+        {
+          workId: work._id,
+          fromBoard: board,
+          title: work.title,
+          sourceEl,
+        },
+        startX,
+        startY,
+        { onDrop },
+      );
+    };
+
+    const onUp = () => {
+      cleanupPending();
+    };
+
+    function cleanupPending() {
+      pendingRef.current = false;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  }
 
   async function onAdd(e: FormEvent) {
     e.preventDefault();
@@ -89,7 +162,7 @@ export function BoardWindow({
           Add
         </Button>
       </form>
-      <div className="sunken-panel board-list">
+      <div className="sunken-panel board-list" data-board-drop={board}>
         {works === undefined ? (
           <div className="p-1">Loading...</div>
         ) : works.length === 0 ? (
@@ -99,7 +172,8 @@ export function BoardWindow({
             {works.map((work) => (
               <li
                 key={work._id}
-                className="flex items-center gap-2 border-b border-[#dfdfdf] px-1 py-1 last:border-b-0"
+                className="work-row flex items-center gap-2 border-b border-[#dfdfdf] px-1 py-1 last:border-b-0"
+                onPointerDown={(e) => onRowPointerDown(e, work)}
               >
                 <span className="flex-1 break-words">{work.title}</span>
                 <Button
