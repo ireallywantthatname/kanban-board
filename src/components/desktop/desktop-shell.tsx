@@ -3,6 +3,7 @@
 import { useConvexAuth } from "convex/react";
 import { useCallback, useRef, useState } from "react";
 import { AuthWindow } from "@/components/auth/auth-window";
+import { BootScreen } from "@/components/desktop/boot-screen";
 import { DesktopIcon } from "@/components/desktop/desktop-icon";
 import { Taskbar } from "@/components/desktop/taskbar";
 import { ContextMenu } from "@/components/ui/context-menu";
@@ -202,11 +203,7 @@ export function DesktopShell() {
   );
 
   if (isLoading) {
-    return (
-      <div className="flex h-full w-full items-center justify-center text-white">
-        Loading...
-      </div>
-    );
+    return <BootScreen />;
   }
 
   if (!isAuthenticated) {
@@ -216,7 +213,7 @@ export function DesktopShell() {
           <AuthWindow />
         </div>
         <div className="taskbar">
-          <span style={{ fontWeight: 700, padding: "0 6px" }}>Kanban Board</span>
+          <span className="taskbar-brand">Kanban Board</span>
           <div className="flex-1" />
           <div className="taskbar-tray">
             <span className="taskbar-clock">Sign in</span>
