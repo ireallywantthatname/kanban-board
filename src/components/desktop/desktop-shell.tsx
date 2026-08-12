@@ -21,7 +21,7 @@ import type { WindowFrame, WindowGeom } from "@/lib/window-shell";
 type MenuState = {
   x: number;
   y: number;
-  target: "desktop" | BoardId;
+  board: BoardId;
 } | null;
 
 export function DesktopShell() {
@@ -233,7 +233,6 @@ export function DesktopShell() {
         onClick={() => setSelectedIcon(null)}
         onContextMenu={(e) => {
           e.preventDefault();
-          setMenu({ x: e.clientX, y: e.clientY, target: "desktop" });
         }}
       >
         <div className="absolute top-2 left-2 z-[5] flex flex-col gap-2">
@@ -249,7 +248,7 @@ export function DesktopShell() {
                 e.preventDefault();
                 e.stopPropagation();
                 setSelectedIcon(board.id);
-                setMenu({ x: e.clientX, y: e.clientY, target: board.id });
+                setMenu({ x: e.clientX, y: e.clientY, board: board.id });
               }}
             />
           ))}
@@ -272,25 +271,13 @@ export function DesktopShell() {
             x={menu.x}
             y={menu.y}
             onClose={() => setMenu(null)}
-            items={
-              menu.target === "desktop"
-                ? [
-                    {
-                      id: "about",
-                      label: "About Kanban98",
-                      onSelect: () => {
-                        window.alert("Kanban Board — Windows 98 style");
-                      },
-                    },
-                  ]
-                : [
-                    {
-                      id: "open",
-                      label: "Open",
-                      onSelect: () => openBoard(menu.target as BoardId),
-                    },
-                  ]
-            }
+            items={[
+              {
+                id: "open",
+                label: "Open",
+                onSelect: () => openBoard(menu.board),
+              },
+            ]}
           />
         ) : null}
       </div>
