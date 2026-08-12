@@ -49,6 +49,7 @@ export function Taskbar({
             <button
               key={frame.id}
               type="button"
+              data-taskbar-window={frame.id}
               className={cn("taskbar-app-button", selected && "selected")}
               onClick={() => onTaskButtonClick(frame.id)}
             >

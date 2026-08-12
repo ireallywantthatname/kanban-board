@@ -33,6 +33,7 @@ type WindowManagerProps = {
   frames: WindowFrame[];
   focusOrder: BoardId[];
   activeId: BoardId | null;
+  restoringIds?: ReadonlySet<BoardId>;
   onClose: (board: BoardId) => void;
   onFocus: (board: BoardId) => void;
   onMinimize: (board: BoardId) => void;
@@ -127,6 +128,7 @@ export function WindowManager({
   frames,
   focusOrder,
   activeId,
+  restoringIds,
   onClose,
   onFocus,
   onMinimize,
@@ -275,9 +277,11 @@ export function WindowManager({
         if (frame.minimized) return null;
         const g = resolved[frame.id];
         if (!g) return null;
+        const restoring = restoringIds?.has(frame.id) ?? false;
         return (
           <div
             key={frame.id}
+            data-window-id={frame.id}
             className="absolute"
             style={{
               left: g.x,
@@ -285,6 +289,7 @@ export function WindowManager({
               width: g.w,
               height: g.h,
               zIndex: zIndexFor(frame.id),
+              visibility: restoring ? "hidden" : "visible",
             }}
             onPointerDown={() => onFocus(frame.id)}
           >

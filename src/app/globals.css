@@ -551,3 +551,13 @@
   margin: 0 1px 1px;
   flex-shrink: 0;
 }
+
+.titlebar-fly {
+  box-sizing: border-box;
+}
+
+.titlebar-fly .title-bar-text {
+  margin-right: 0;
+  flex: 1;
+  min-width: 0;
+}
