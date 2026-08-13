@@ -10,9 +10,11 @@
 
 import type * as auth from "../auth.js";
 import type * as http from "../http.js";
+import type * as invites from "../invites.js";
 import type * as lib from "../lib.js";
 import type * as users from "../users.js";
 import type * as works from "../works.js";
+import type * as workspaces from "../workspaces.js";
 
 import type {
   ApiFromModules,
@@ -23,9 +25,11 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   http: typeof http;
+  invites: typeof invites;
   lib: typeof lib;
   users: typeof users;
   works: typeof works;
+  workspaces: typeof workspaces;
 }>;
 
 /**
