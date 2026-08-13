@@ -766,10 +766,6 @@ body.work-dragging * {
   min-width: 0;
 }
 
-.form-error {
-  color: #800000;
-}
-
 .board-add-form {
   margin-bottom: 8px;
 }
@@ -789,11 +785,6 @@ body.work-dragging * {
 
 .board-empty-hint {
   color: #808080;
-}
-
-.taskbar-brand {
-  font-weight: 700;
-  padding: 0 6px;
 }
 
 .shutdown-overlay {
@@ -826,11 +817,24 @@ body.work-dragging * {
   box-sizing: border-box;
 }
 
-.auth-shell > *,
 .boot-shell > *,
 .not-found-shell > * {
   width: 100%;
   max-width: 320px;
+}
+
+.auth-window {
+  width: 420px;
+  max-width: 100%;
+  height: auto;
+}
+
+.auth-window .shell-dialog-field label {
+  min-width: 64px;
+}
+
+.auth-window .shell-dialog-actions {
+  justify-content: flex-end;
 }
 
 .boot-message,

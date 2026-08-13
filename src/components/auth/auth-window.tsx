@@ -2,7 +2,7 @@
 
 import { useAuthActions } from "@convex-dev/auth/react";
 import { FormEvent, useState } from "react";
-import { Windows95Password } from "react-old-icons";
+import { Windows95Password, WindowsXPUsers } from "react-old-icons";
 import { AppWindow } from "@/components/window/app-window";
 import { playSound } from "@/lib/sound";
 
@@ -11,6 +11,8 @@ export function AuthWindow() {
   const [flow, setFlow] = useState<"signIn" | "signUp">("signIn");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const isSignIn = flow === "signIn";
+  const Icon = isSignIn ? Windows95Password : WindowsXPUsers;
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -22,10 +24,11 @@ export function AuthWindow() {
       await signIn("password", formData);
     } catch (err) {
       playSound("SystemExclamation");
+      const raw = err instanceof Error ? err.message : "";
       setError(
-        err instanceof Error
-          ? err.message
-          : flow === "signIn"
+        raw && !raw.includes("CONVEX") && raw.length < 80
+          ? raw
+          : isSignIn
             ? "Could not sign in. Check email and password."
             : "Could not create account. Try a different email.",
       );
@@ -37,64 +40,65 @@ export function AuthWindow() {
   return (
     <div className="auth-shell">
       <AppWindow
-        title="Kanban Board"
-        icon={<Windows95Password size={16} />}
-        statusBar={
-          <p className="status-bar-field">
-            {busy
-              ? "Working..."
-              : flow === "signIn"
-                ? "Sign in to continue"
-                : "Create a new account"}
-          </p>
-        }
+        title={isSignIn ? "Enter Network Password" : "Add User"}
+        icon={<Icon size={16} />}
+        className="auth-window"
       >
-        <form onSubmit={onSubmit} className="flex flex-col gap-3">
-          <div className="field-row-stacked">
+        <form onSubmit={onSubmit}>
+          <div className="shell-dialog-body">
+            <span className="shell-dialog-icon" aria-hidden="true">
+              <Icon size={32} />
+            </span>
+            <p className="shell-dialog-message">
+              {isSignIn
+                ? "Type your email and password to log on to Kanban Board."
+                : "Type an email and password to add a new user."}
+            </p>
+          </div>
+          <div className="field-row shell-dialog-field">
             <label htmlFor="email" className="select-none">
-              Email
+              Email:
             </label>
             <input
               id="email"
               name="email"
               type="email"
               autoComplete="email"
+              autoFocus
               required
               disabled={busy}
-              className="w-full"
+              className="flex-1"
             />
           </div>
-          <div className="field-row-stacked">
+          <div className="field-row shell-dialog-field">
             <label htmlFor="password" className="select-none">
-              Password
+              Password:
             </label>
             <input
               id="password"
               name="password"
               type="password"
-              autoComplete={
-                flow === "signIn" ? "current-password" : "new-password"
-              }
+              autoComplete={isSignIn ? "current-password" : "new-password"}
               required
               minLength={8}
               disabled={busy}
-              className="w-full"
+              className="flex-1"
             />
           </div>
-          {error ? <div className="form-error">{error}</div> : null}
-          <div className="field-row pt-1">
+          {error ? <p className="shell-dialog-error">{error}</p> : null}
+          <div className="shell-dialog-actions">
             <button type="submit" className="default" disabled={busy}>
-              {flow === "signIn" ? "Sign in" : "Sign up"}
+              OK
             </button>
             <button
               type="button"
               disabled={busy}
               onClick={() => {
-                setFlow(flow === "signIn" ? "signUp" : "signIn");
+                setFlow(isSignIn ? "signUp" : "signIn");
                 setError(null);
               }}
             >
-              {flow === "signIn" ? "Sign up" : "Sign in"}
+              {isSignIn ? "New User..." : "Cancel"}
             </button>
           </div>
         </form>

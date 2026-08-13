@@ -360,20 +360,7 @@ export function DesktopShell() {
   }
 
   if (!isAuthenticated) {
-    return (
-      <div className="flex h-full w-full flex-col">
-        <div className="min-h-0 flex-1">
-          <AuthWindow />
-        </div>
-        <div className="taskbar">
-          <span className="taskbar-brand">Kanban Board</span>
-          <div className="flex-1" />
-          <div className="taskbar-tray">
-            <span className="taskbar-clock">Sign in</span>
-          </div>
-        </div>
-      </div>
-    );
+    return <AuthWindow />;
   }
 
   const menuItems = (() => {
