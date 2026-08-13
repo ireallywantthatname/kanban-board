@@ -9,6 +9,7 @@ const workReturn = v.object({
   userId: v.id("users"),
   board: boardValidator,
   title: v.string(),
+  done: v.optional(v.boolean()),
 });
 
 export const list = query({
@@ -93,6 +94,44 @@ export const move = mutation({
       return null;
     }
     await ctx.db.patch(args.id, { board: args.board });
+    return null;
+  },
+});
+
+export const setDone = mutation({
+  args: {
+    id: v.id("works"),
+    done: v.boolean(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx);
+    const work = await ctx.db.get(args.id);
+    if (!work || work.userId !== userId) {
+      throw new Error("Not found");
+    }
+    await ctx.db.patch(args.id, { done: args.done });
+    return null;
+  },
+});
+
+export const rename = mutation({
+  args: {
+    id: v.id("works"),
+    title: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx);
+    const work = await ctx.db.get(args.id);
+    if (!work || work.userId !== userId) {
+      throw new Error("Not found");
+    }
+    const title = args.title.trim();
+    if (title.length === 0) {
+      throw new Error("Title is required");
+    }
+    await ctx.db.patch(args.id, { title });
     return null;
   },
 });

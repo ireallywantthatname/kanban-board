@@ -46,12 +46,17 @@ export function BoardWindow({
   const create = useMutation(api.works.create);
   const remove = useMutation(api.works.remove);
   const move = useMutation(api.works.move);
+  const setDone = useMutation(api.works.setDone);
+  const rename = useMutation(api.works.rename);
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const [selectedId, setSelectedId] = useState<Id<"works"> | null>(null);
+  const [editingId, setEditingId] = useState<Id<"works"> | null>(null);
+  const [draft, setDraft] = useState("");
   const BoardIcon = BOARDS.find((b) => b.id === board)?.Icon;
   const count = works?.length;
   const pendingRef = useRef(false);
+  const editRef = useRef<Id<"works"> | null>(null);
 
   const onDrop = useCallback(
     async (
@@ -72,7 +77,8 @@ export function BoardWindow({
     work: { _id: Id<"works">; title: string },
   ) {
     if (e.button !== 0) return;
-    if ((e.target as HTMLElement).closest("button")) return;
+    if ((e.target as HTMLElement).closest("button, input")) return;
+    if (editingId === work._id) return;
     if (isWorkDragging() || pendingRef.current) return;
 
     const sourceEl = e.currentTarget;
@@ -111,6 +117,34 @@ export function BoardWindow({
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onUp);
+  }
+
+  function startEdit(work: { _id: Id<"works">; title: string }) {
+    editRef.current = work._id;
+    setSelectedId(work._id);
+    setEditingId(work._id);
+    setDraft(work.title);
+  }
+
+  function cancelEdit() {
+    editRef.current = null;
+    setEditingId(null);
+    setDraft("");
+  }
+
+  async function saveEdit() {
+    const id = editRef.current;
+    if (!id) return;
+    const value = draft.trim();
+    editRef.current = null;
+    setEditingId(null);
+    setDraft("");
+    if (!value) return;
+    try {
+      await rename({ id, title: value });
+    } catch {
+      return;
+    }
   }
 
   async function onAdd(e: FormEvent) {
@@ -186,7 +220,43 @@ export function BoardWindow({
                 }}
                 onFocus={() => setSelectedId(work._id)}
               >
-                <span className="flex-1 break-words">{work.title}</span>
+                <input
+                  type="checkbox"
+                  checked={work.done === true}
+                  onChange={(e) => {
+                    void setDone({ id: work._id, done: e.target.checked });
+                  }}
+                />
+                {editingId === work._id ? (
+                  <input
+                    type="text"
+                    value={draft}
+                    autoFocus
+                    className="flex-1"
+                    onChange={(e) => setDraft(e.target.value)}
+                    onBlur={() => void saveEdit()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void saveEdit();
+                      }
+                      if (e.key === "Escape") {
+                        e.preventDefault();
+                        cancelEdit();
+                      }
+                    }}
+                  />
+                ) : (
+                  <span className="flex-1 break-words">{work.title}</span>
+                )}
+                <button
+                  type="button"
+                  className="min-h-0 min-w-0 h-6 px-2"
+                  disabled={editingId === work._id}
+                  onClick={() => startEdit(work)}
+                >
+                  Edit
+                </button>
                 <button
                   type="button"
                   className="min-h-0 min-w-0 h-6 px-2"
