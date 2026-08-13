@@ -11,8 +11,6 @@ import {
 } from "react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { AppWindow } from "@/components/window/app-window";
 import { BOARDS, boardLabel, type BoardId } from "@/lib/boards";
 import { cn } from "@/lib/utils";
@@ -153,20 +151,21 @@ export function BoardWindow({
       {...props}
     >
       <form onSubmit={onAdd} className="field-row board-add-form">
-        <Input
+        <input
+          type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="New work"
           disabled={busy}
           className="flex-1"
         />
-        <Button
+        <button
           type="submit"
           className="default"
           disabled={busy || title.trim().length === 0}
         >
           Add
-        </Button>
+        </button>
       </form>
       <div className="sunken-panel board-list" data-board-drop={board}>
         {works === undefined ? (
@@ -196,13 +195,13 @@ export function BoardWindow({
                 onFocus={() => setSelectedId(work._id)}
               >
                 <span className="flex-1 break-words">{work.title}</span>
-                <Button
+                <button
                   type="button"
-                  size="sm"
+                  className="min-h-0 min-w-0 h-6 px-2"
                   onClick={() => void remove({ id: work._id })}
                 >
                   Remove
-                </Button>
+                </button>
               </li>
             ))}
           </ul>

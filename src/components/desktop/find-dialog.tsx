@@ -5,9 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Windows95SavedSearch } from "react-old-icons";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { AppWindow } from "@/components/window/app-window";
 import { boardLabel, type BoardId } from "@/lib/boards";
 import { cn } from "@/lib/utils";
@@ -73,9 +70,12 @@ export function FindDialog({ onClose, onOpenBoard }: FindDialogProps) {
         statusBar={<p className="status-bar-field">{status}</p>}
       >
         <div className="field-row shell-dialog-field">
-          <Label htmlFor="find-work-query">Find:</Label>
-          <Input
+          <label htmlFor="find-work-query" className="select-none">
+            Find:
+          </label>
+          <input
             id="find-work-query"
+            type="text"
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -124,17 +124,17 @@ export function FindDialog({ onClose, onOpenBoard }: FindDialogProps) {
           )}
         </div>
         <div className="shell-dialog-actions">
-          <Button
+          <button
             type="button"
             className="default"
             disabled={!selectedId}
             onClick={openSelected}
           >
             Open
-          </Button>
-          <Button type="button" onClick={onClose}>
+          </button>
+          <button type="button" onClick={onClose}>
             Cancel
-          </Button>
+          </button>
         </div>
       </AppWindow>
     </div>

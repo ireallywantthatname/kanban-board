@@ -1,67 +1,13 @@
 @import "tailwindcss";
-@import "shadcn/tailwind.css";
 @import "../styles/98.css";
 
 @theme inline {
   --font-sans: "Pixelated MS Sans Serif", Arial, sans-serif;
-  --font-heading: "Pixelated MS Sans Serif", Arial, sans-serif;
   --color-desktop: #008080;
-  --color-win-face: #c0c0c0;
-  --color-win-title-from: #000080;
-  --color-win-title-to: #1084d0;
-  --color-win-light: #ffffff;
-  --color-win-hilight: #dfdfdf;
-  --color-win-shadow: #808080;
-  --color-win-dark: #0a0a0a;
-  --color-background: #c0c0c0;
-  --color-foreground: #000000;
-  --color-card: #c0c0c0;
-  --color-card-foreground: #000000;
-  --color-popover: #c0c0c0;
-  --color-popover-foreground: #000000;
-  --color-primary: #000080;
-  --color-primary-foreground: #ffffff;
-  --color-secondary: #c0c0c0;
-  --color-secondary-foreground: #000000;
-  --color-muted: #c0c0c0;
-  --color-muted-foreground: #000000;
-  --color-accent: #000080;
-  --color-accent-foreground: #ffffff;
-  --color-destructive: #800000;
-  --color-border: #808080;
-  --color-input: #ffffff;
-  --color-ring: #000080;
-  --radius-sm: 0;
-  --radius-md: 0;
-  --radius-lg: 0;
-  --radius-xl: 0;
-  --radius-2xl: 0;
-  --radius-3xl: 0;
-  --radius-4xl: 0;
-  --radius: 0;
 }
 
 :root {
   --ui-scale: 1.25;
-  --background: #c0c0c0;
-  --foreground: #000000;
-  --card: #c0c0c0;
-  --card-foreground: #000000;
-  --popover: #c0c0c0;
-  --popover-foreground: #000000;
-  --primary: #000080;
-  --primary-foreground: #ffffff;
-  --secondary: #c0c0c0;
-  --secondary-foreground: #000000;
-  --muted: #c0c0c0;
-  --muted-foreground: #000000;
-  --accent: #000080;
-  --accent-foreground: #ffffff;
-  --destructive: #800000;
-  --border: #808080;
-  --input: #ffffff;
-  --ring: #000080;
-  --radius: 0;
   --desktop: #008080;
 }
 

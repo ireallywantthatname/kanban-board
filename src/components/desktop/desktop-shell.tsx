@@ -11,7 +11,7 @@ import { HelpDialog } from "@/components/desktop/help-dialog";
 import { NewWorkDialog } from "@/components/desktop/new-work-dialog";
 import { SessionDialog } from "@/components/desktop/session-dialog";
 import { Taskbar } from "@/components/desktop/taskbar";
-import { ContextMenu } from "@/components/ui/context-menu";
+import { ContextMenu } from "@/components/desktop/context-menu";
 import { WindowManager } from "@/components/window/window-manager";
 import {
   animateTitlebar,

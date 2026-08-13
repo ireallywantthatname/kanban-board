@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { WindowsShutDown, WindowsXPLogOff } from "react-old-icons";
-import { Button } from "@/components/ui/button";
 import { AppWindow } from "@/components/window/app-window";
 
 type SessionDialogProps = {
@@ -44,12 +43,12 @@ export function SessionDialog({ kind, onConfirm, onClose }: SessionDialogProps) 
           <p className="shell-dialog-message">{message}</p>
         </div>
         <div className="shell-dialog-actions">
-          <Button type="button" className="default" onClick={onConfirm}>
+          <button type="button" className="default" onClick={onConfirm}>
             {confirmLabel}
-          </Button>
-          <Button type="button" onClick={onClose}>
+          </button>
+          <button type="button" onClick={onClose}>
             {cancelLabel}
-          </Button>
+          </button>
         </div>
       </AppWindow>
     </div>

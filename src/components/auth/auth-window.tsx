@@ -3,9 +3,6 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { FormEvent, useState } from "react";
 import { Windows95Password } from "react-old-icons";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { AppWindow } from "@/components/window/app-window";
 
 export function AuthWindow() {
@@ -52,19 +49,24 @@ export function AuthWindow() {
       >
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
           <div className="field-row-stacked">
-            <Label htmlFor="email">Email</Label>
-            <Input
+            <label htmlFor="email" className="select-none">
+              Email
+            </label>
+            <input
               id="email"
               name="email"
               type="email"
               autoComplete="email"
               required
               disabled={busy}
+              className="w-full"
             />
           </div>
           <div className="field-row-stacked">
-            <Label htmlFor="password">Password</Label>
-            <Input
+            <label htmlFor="password" className="select-none">
+              Password
+            </label>
+            <input
               id="password"
               name="password"
               type="password"
@@ -74,14 +76,15 @@ export function AuthWindow() {
               required
               minLength={8}
               disabled={busy}
+              className="w-full"
             />
           </div>
           {error ? <div className="form-error">{error}</div> : null}
           <div className="field-row pt-1">
-            <Button type="submit" className="default" disabled={busy}>
+            <button type="submit" className="default" disabled={busy}>
               {flow === "signIn" ? "Sign in" : "Sign up"}
-            </Button>
-            <Button
+            </button>
+            <button
               type="button"
               disabled={busy}
               onClick={() => {
@@ -90,7 +93,7 @@ export function AuthWindow() {
               }}
             >
               {flow === "signIn" ? "Sign up" : "Sign in"}
-            </Button>
+            </button>
           </div>
         </form>
       </AppWindow>

@@ -4,9 +4,6 @@ import { useMutation } from "convex/react";
 import { FormEvent, useEffect, useState } from "react";
 import { Windows95Notepad } from "react-old-icons";
 import { api } from "../../../convex/_generated/api";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { AppWindow } from "@/components/window/app-window";
 import { BOARDS, type BoardId } from "@/lib/boards";
 
@@ -63,9 +60,12 @@ export function NewWorkDialog({ onClose, onCreated }: NewWorkDialogProps) {
             </p>
           </div>
           <div className="field-row shell-dialog-field">
-            <Label htmlFor="new-work-title">Title:</Label>
-            <Input
+            <label htmlFor="new-work-title" className="select-none">
+              Title:
+            </label>
+            <input
               id="new-work-title"
+              type="text"
               autoFocus
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -74,7 +74,9 @@ export function NewWorkDialog({ onClose, onCreated }: NewWorkDialogProps) {
             />
           </div>
           <div className="field-row shell-dialog-field">
-            <Label htmlFor="new-work-board">Board:</Label>
+            <label htmlFor="new-work-board" className="select-none">
+              Board:
+            </label>
             <select
               id="new-work-board"
               value={board}
@@ -91,16 +93,16 @@ export function NewWorkDialog({ onClose, onCreated }: NewWorkDialogProps) {
           </div>
           {error ? <p className="shell-dialog-error">{error}</p> : null}
           <div className="shell-dialog-actions">
-            <Button
+            <button
               type="submit"
               className="default"
               disabled={busy || title.trim().length === 0}
             >
               OK
-            </Button>
-            <Button type="button" onClick={onClose} disabled={busy}>
+            </button>
+            <button type="button" onClick={onClose} disabled={busy}>
               Cancel
-            </Button>
+            </button>
           </div>
         </form>
       </AppWindow>

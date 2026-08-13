@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { Windows95Help } from "react-old-icons";
-import { Button } from "@/components/ui/button";
 import { AppWindow } from "@/components/window/app-window";
 
 type HelpDialogProps = {
@@ -39,9 +38,9 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
           </ul>
         </div>
         <div className="shell-dialog-actions">
-          <Button type="button" className="default" onClick={onClose}>
+          <button type="button" className="default" onClick={onClose}>
             OK
-          </Button>
+          </button>
         </div>
       </AppWindow>
     </div>
