@@ -9,6 +9,18 @@ import { AppWindow } from "@/components/window/app-window";
 import { boardLabel, isBoardId } from "@/lib/boards";
 import { cn } from "@/lib/utils";
 import type { WindowId } from "@/lib/window-shell";
+import { workspaceWindowId } from "@/lib/windows";
+
+type FindWork = {
+  workspaceId?: Id<"workspaces">;
+  board?: "all" | "today" | "this_week" | "later";
+};
+
+function targetForWork(work: FindWork): WindowId | null {
+  if (work.workspaceId) return workspaceWindowId(work.workspaceId);
+  if (work.board && isBoardId(work.board)) return work.board;
+  return null;
+}
 
 type FindDialogProps = {
   onClose: () => void;
@@ -49,10 +61,10 @@ export function FindDialog({ onClose, onOpenBoard }: FindDialogProps) {
     if (!filtered || !selectedId) return;
     const work = filtered.find((w) => w._id === selectedId);
     if (!work) return;
-    if (work.board && isBoardId(work.board)) {
-      onOpenBoard(work.board);
-      onClose();
-    }
+    const target = targetForWork(work);
+    if (!target) return;
+    onOpenBoard(target);
+    onClose();
   }
 
   const count = filtered?.length;
@@ -112,10 +124,10 @@ export function FindDialog({ onClose, onOpenBoard }: FindDialogProps) {
                     )}
                     onClick={() => setSelectedId(work._id)}
                     onDoubleClick={() => {
-                      if (work.board && isBoardId(work.board)) {
-                        onOpenBoard(work.board);
-                        onClose();
-                      }
+                      const target = targetForWork(work);
+                      if (!target) return;
+                      onOpenBoard(target);
+                      onClose();
                     }}
                   >
                     <span
@@ -127,9 +139,11 @@ export function FindDialog({ onClose, onOpenBoard }: FindDialogProps) {
                       {work.title}
                     </span>
                     <span className="find-result-board">
-                      {work.board && isBoardId(work.board)
-                        ? boardLabel(work.board)
-                        : ""}
+                      {work.workspaceName
+                        ? work.workspaceName
+                        : work.board && isBoardId(work.board)
+                          ? boardLabel(work.board)
+                          : ""}
                     </span>
                   </button>
                 </li>

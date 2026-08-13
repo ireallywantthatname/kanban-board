@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { BOARDS, boardLabel, isBoardId } from "@/lib/boards";
+import { Windows95NetworkNeighborhood } from "react-old-icons";
+import type { Id } from "../../../convex/_generated/dataModel";
+import { BOARDS, isBoardId } from "@/lib/boards";
 import type { WindowFrame, WindowId } from "@/lib/window-shell";
+import { windowTitle } from "@/lib/windows";
 import { cn } from "@/lib/utils";
 import { Clock } from "./clock";
 import { StartMenu } from "./start-menu";
@@ -11,9 +14,12 @@ import { StartMenu } from "./start-menu";
 type TaskbarProps = {
   frames: WindowFrame[];
   activeId: WindowId | null;
+  workspaces?: { _id: Id<"workspaces">; name: string }[];
   onOpenBoard: (board: WindowId) => void;
   onTaskButtonClick: (board: WindowId) => void;
   onNewWork: () => void;
+  onNewWorkspace: () => void;
+  onInvitations: () => void;
   onFind: () => void;
   onHelp: () => void;
   onLogOff: () => void;
@@ -23,9 +29,12 @@ type TaskbarProps = {
 export function Taskbar({
   frames,
   activeId,
+  workspaces = [],
   onOpenBoard,
   onTaskButtonClick,
   onNewWork,
+  onNewWorkspace,
+  onInvitations,
   onFind,
   onHelp,
   onLogOff,
@@ -56,10 +65,13 @@ export function Taskbar({
           onClose={() => setMenuOpen(false)}
           onOpenBoard={onOpenBoard}
           onNewWork={onNewWork}
+          onNewWorkspace={onNewWorkspace}
+          onInvitations={onInvitations}
           onFind={onFind}
           onHelp={onHelp}
           onLogOff={onLogOff}
           onShutDown={onShutDown}
+          workspaces={workspaces}
         />
       </div>
       <div className="taskbar-divider" />
@@ -77,9 +89,13 @@ export function Taskbar({
               className={cn("taskbar-app-button", selected && "selected")}
               onClick={() => onTaskButtonClick(frame.id)}
             >
-              {def ? <def.Icon size={16} /> : null}
+              {def ? (
+                <def.Icon size={16} />
+              ) : (
+                <Windows95NetworkNeighborhood size={16} />
+              )}
               <span className="taskbar-app-label">
-                {isBoardId(frame.id) ? boardLabel(frame.id) : "Workspace"}
+                {windowTitle(frame.id, workspaces)}
               </span>
             </button>
           );

@@ -1,17 +1,27 @@
 "use client";
 
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useConvexAuth } from "convex/react";
-import { useCallback, useRef, useState } from "react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Windows95Inbox,
+  Windows95NetworkNeighborhood,
+} from "react-old-icons";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { AuthWindow } from "@/components/auth/auth-window";
 import { BootScreen } from "@/components/desktop/boot-screen";
+import { ConfirmDialog } from "@/components/desktop/confirm-dialog";
+import { ContextMenu } from "@/components/desktop/context-menu";
 import { DesktopIcon } from "@/components/desktop/desktop-icon";
 import { FindDialog } from "@/components/desktop/find-dialog";
 import { HelpDialog } from "@/components/desktop/help-dialog";
+import { InviteDialog } from "@/components/desktop/invite-dialog";
+import { InvitationsDialog } from "@/components/desktop/invitations-dialog";
+import { NameWorkspaceDialog } from "@/components/desktop/name-workspace-dialog";
 import { NewWorkDialog } from "@/components/desktop/new-work-dialog";
 import { SessionDialog } from "@/components/desktop/session-dialog";
 import { Taskbar } from "@/components/desktop/taskbar";
-import { ContextMenu } from "@/components/desktop/context-menu";
 import { WindowManager } from "@/components/window/window-manager";
 import {
   animateTitlebar,
@@ -21,37 +31,68 @@ import {
   waitFrames,
   windowTitlebarEl,
 } from "@/lib/animate-titlebar";
-import { BOARDS, boardLabel, isBoardId, type BoardId } from "@/lib/boards";
+import { BOARDS, type BoardId } from "@/lib/boards";
 import type { WindowFrame, WindowGeom, WindowId } from "@/lib/window-shell";
+import {
+  parseWindowId,
+  windowTitle,
+  workspaceWindowId,
+} from "@/lib/windows";
 
-function windowTitle(id: WindowId): string {
-  return isBoardId(id) ? boardLabel(id) : "Workspace";
-}
+type IconId = WindowId | "inbox";
 
 type MenuState = {
   x: number;
   y: number;
-  board: BoardId;
+  target:
+    | { kind: "board"; id: BoardId }
+    | { kind: "workspace"; id: Id<"workspaces"> };
 } | null;
 
 type ShellDialog =
   | null
   | { type: "new-work" }
+  | { type: "new-workspace" }
   | { type: "find" }
   | { type: "help" }
   | { type: "log-off" }
-  | { type: "shut-down" };
+  | { type: "shut-down" }
+  | { type: "invite"; workspaceId: Id<"workspaces"> }
+  | { type: "invitations" }
+  | { type: "rename-workspace"; workspaceId: Id<"workspaces">; name: string }
+  | { type: "delete-workspace"; workspaceId: Id<"workspaces">; name: string }
+  | { type: "leave-workspace"; workspaceId: Id<"workspaces">; name: string };
 
 export function DesktopShell() {
   const { isLoading, isAuthenticated } = useConvexAuth();
   const { signOut } = useAuthActions();
+  const workspaces = useQuery(
+    api.workspaces.listMine,
+    isAuthenticated ? {} : "skip",
+  );
+  const pending = useQuery(
+    api.invites.listPending,
+    isAuthenticated ? {} : "skip",
+  );
+  const createWorkspace = useMutation(api.workspaces.create);
+  const renameWorkspace = useMutation(api.workspaces.rename);
+  const removeWorkspace = useMutation(api.workspaces.remove);
+  const leaveWorkspace = useMutation(api.workspaces.leave);
   const [frames, setFrames] = useState<WindowFrame[]>([]);
   const [focusOrder, setFocusOrder] = useState<WindowId[]>([]);
-  const [selectedIcon, setSelectedIcon] = useState<BoardId | null>(null);
+  const [selectedIcon, setSelectedIcon] = useState<IconId | null>(null);
   const [menu, setMenu] = useState<MenuState>(null);
   const [dialog, setDialog] = useState<ShellDialog>(null);
-  const [restoringIds, setRestoringIds] = useState<Set<WindowId>>(() => new Set());
+  const [restoringIds, setRestoringIds] = useState<Set<WindowId>>(
+    () => new Set(),
+  );
   const animatingRef = useRef<Set<WindowId>>(new Set());
+  const openedInvitesRef = useRef(false);
+  const workspaceList = workspaces ?? [];
+  const titleFor = useCallback(
+    (id: WindowId) => windowTitle(id, workspaceList),
+    [workspaceList],
+  );
 
   const activeId =
     focusOrder.filter((id) => frames.some((f) => f.id === id && !f.minimized)).at(-1) ??
@@ -80,7 +121,7 @@ export function DesktopShell() {
         const to = rectFromElement(taskbarButtonEl(board));
         if (from && to) {
           await animateTitlebar(from, to, {
-            title: windowTitle(board),
+            title: titleFor(board),
             iconHtml: titlebarIconHtml(board),
             active: activeId === board,
           });
@@ -90,7 +131,7 @@ export function DesktopShell() {
         animatingRef.current.delete(board);
       }
     },
-    [activeId, frames, setMinimized],
+    [activeId, frames, setMinimized, titleFor],
   );
 
   const restoreBoard = useCallback(
@@ -117,7 +158,7 @@ export function DesktopShell() {
         }
         if (from && to) {
           await animateTitlebar(from, to, {
-            title: windowTitle(board),
+            title: titleFor(board),
             iconHtml: titlebarIconHtml(board),
             active: true,
           });
@@ -131,7 +172,7 @@ export function DesktopShell() {
         animatingRef.current.delete(board);
       }
     },
-    [focusBoard, frames, setMinimized],
+    [focusBoard, frames, setMinimized, titleFor],
   );
 
   const openBoard = useCallback(
@@ -143,7 +184,7 @@ export function DesktopShell() {
         } else {
           focusBoard(board);
         }
-        if (isBoardId(board)) setSelectedIcon(board);
+        setSelectedIcon(board);
         return;
       }
       setFrames((prev) => [
@@ -157,7 +198,7 @@ export function DesktopShell() {
         },
       ]);
       setFocusOrder((prev) => [...prev.filter((b) => b !== board), board]);
-      if (isBoardId(board)) setSelectedIcon(board);
+      setSelectedIcon(board);
     },
     [focusBoard, frames, restoreBoard],
   );
@@ -230,6 +271,27 @@ export function DesktopShell() {
 
   const closeDialog = useCallback(() => setDialog(null), []);
 
+  useEffect(() => {
+    if (!workspaces) return;
+    const ids = new Set(
+      workspaces.map((workspace) => workspaceWindowId(workspace._id)),
+    );
+    for (const frame of frames) {
+      const parsed = parseWindowId(frame.id);
+      if (parsed?.kind === "workspace" && !ids.has(frame.id)) {
+        closeBoard(frame.id);
+      }
+    }
+  }, [closeBoard, frames, workspaces]);
+
+  useEffect(() => {
+    if (openedInvitesRef.current) return;
+    if (!pending || pending.length === 0) return;
+    if (dialog !== null) return;
+    openedInvitesRef.current = true;
+    setDialog({ type: "invitations" });
+  }, [dialog, pending]);
+
   if (isLoading) {
     return <BootScreen />;
   }
@@ -250,6 +312,70 @@ export function DesktopShell() {
       </div>
     );
   }
+
+  const menuItems = (() => {
+    if (!menu) return [];
+    if (menu.target.kind === "board") {
+      const boardId = menu.target.id;
+      return [
+        {
+          id: "open",
+          label: "Open",
+          onSelect: () => openBoard(boardId),
+        },
+      ];
+    }
+    const workspaceId = menu.target.id;
+    const workspace = workspaceList.find((w) => w._id === workspaceId);
+    const isOwner = workspace?.role === "owner";
+    return [
+      {
+        id: "open",
+        label: "Open",
+        onSelect: () => openBoard(workspaceWindowId(workspaceId)),
+      },
+      {
+        id: "invite",
+        label: "Invite…",
+        onSelect: () => setDialog({ type: "invite", workspaceId }),
+      },
+      ...(isOwner
+        ? [
+            {
+              id: "rename",
+              label: "Rename…",
+              onSelect: () =>
+                setDialog({
+                  type: "rename-workspace",
+                  workspaceId,
+                  name: workspace?.name ?? "",
+                }),
+            },
+            {
+              id: "delete",
+              label: "Delete",
+              onSelect: () =>
+                setDialog({
+                  type: "delete-workspace",
+                  workspaceId,
+                  name: workspace?.name ?? "Workspace",
+                }),
+            },
+          ]
+        : [
+            {
+              id: "leave",
+              label: "Leave",
+              onSelect: () =>
+                setDialog({
+                  type: "leave-workspace",
+                  workspaceId,
+                  name: workspace?.name ?? "Workspace",
+                }),
+            },
+          ]),
+    ];
+  })();
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -273,16 +399,56 @@ export function DesktopShell() {
                 e.preventDefault();
                 e.stopPropagation();
                 setSelectedIcon(board.id);
-                setMenu({ x: e.clientX, y: e.clientY, board: board.id });
+                setMenu({
+                  x: e.clientX,
+                  y: e.clientY,
+                  target: { kind: "board", id: board.id },
+                });
               }}
             />
           ))}
+          {workspaceList.map((workspace) => {
+            const id = workspaceWindowId(workspace._id);
+            return (
+              <DesktopIcon
+                key={workspace._id}
+                label={workspace.name}
+                Icon={Windows95NetworkNeighborhood}
+                selected={selectedIcon === id}
+                onSelect={() => setSelectedIcon(id)}
+                onOpen={() => openBoard(id)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setSelectedIcon(id);
+                  setMenu({
+                    x: e.clientX,
+                    y: e.clientY,
+                    target: { kind: "workspace", id: workspace._id },
+                  });
+                }}
+              />
+            );
+          })}
+          {pending && pending.length > 0 ? (
+            <DesktopIcon
+              label="Inbox"
+              Icon={Windows95Inbox}
+              selected={selectedIcon === "inbox"}
+              onSelect={() => setSelectedIcon("inbox")}
+              onOpen={() => setDialog({ type: "invitations" })}
+            />
+          ) : null}
         </div>
         <WindowManager
           frames={frames}
           focusOrder={focusOrder}
           activeId={activeId}
           restoringIds={restoringIds}
+          workspaces={workspaceList}
+          onInvite={(workspaceId) =>
+            setDialog({ type: "invite", workspaceId })
+          }
           onClose={closeBoard}
           onFocus={focusBoard}
           onMinimize={(board) => {
@@ -296,21 +462,91 @@ export function DesktopShell() {
             x={menu.x}
             y={menu.y}
             onClose={() => setMenu(null)}
-            items={[
-              {
-                id: "open",
-                label: "Open",
-                onSelect: () => openBoard(menu.board),
-              },
-            ]}
+            items={menuItems}
           />
         ) : null}
         {dialog?.type === "new-work" ? (
           <NewWorkDialog
             onClose={closeDialog}
-            onCreated={(board) => {
+            onCreated={(id) => {
               closeDialog();
-              openBoard(board);
+              openBoard(id);
+            }}
+          />
+        ) : null}
+        {dialog?.type === "new-workspace" ? (
+          <NameWorkspaceDialog
+            title="New Workspace"
+            message="Type a name for the workspace."
+            onClose={closeDialog}
+            onSubmit={async (name) => {
+              const id = await createWorkspace({ name });
+              closeDialog();
+              openBoard(workspaceWindowId(id));
+            }}
+          />
+        ) : null}
+        {dialog?.type === "rename-workspace" ? (
+          <NameWorkspaceDialog
+            title="Rename Workspace"
+            message="Type a new name for the workspace."
+            initialName={dialog.name}
+            onClose={closeDialog}
+            onSubmit={async (name) => {
+              await renameWorkspace({
+                workspaceId: dialog.workspaceId,
+                name,
+              });
+              closeDialog();
+            }}
+          />
+        ) : null}
+        {dialog?.type === "delete-workspace" ? (
+          <ConfirmDialog
+            title="Delete Workspace"
+            message={`Delete ${dialog.name}? All works will be removed.`}
+            confirmLabel="Yes"
+            cancelLabel="No"
+            Icon={Windows95NetworkNeighborhood}
+            onClose={closeDialog}
+            onConfirm={async () => {
+              await removeWorkspace({ workspaceId: dialog.workspaceId });
+              closeBoard(workspaceWindowId(dialog.workspaceId));
+              closeDialog();
+            }}
+          />
+        ) : null}
+        {dialog?.type === "leave-workspace" ? (
+          <ConfirmDialog
+            title="Leave Workspace"
+            message={`Leave ${dialog.name}?`}
+            confirmLabel="Yes"
+            cancelLabel="No"
+            Icon={Windows95NetworkNeighborhood}
+            onClose={closeDialog}
+            onConfirm={async () => {
+              await leaveWorkspace({ workspaceId: dialog.workspaceId });
+              closeBoard(workspaceWindowId(dialog.workspaceId));
+              closeDialog();
+            }}
+          />
+        ) : null}
+        {dialog?.type === "invite" ? (
+          <InviteDialog
+            workspaceId={dialog.workspaceId}
+            isOwner={
+              workspaceList.find((w) => w._id === dialog.workspaceId)
+                ?.role === "owner"
+            }
+            onClose={closeDialog}
+          />
+        ) : null}
+        {dialog?.type === "invitations" ? (
+          <InvitationsDialog
+            onClose={closeDialog}
+            onAccepted={(workspaceId) => {
+              closeDialog();
+              openBoard(workspaceWindowId(workspaceId));
             }}
           />
         ) : null}
@@ -343,9 +579,12 @@ export function DesktopShell() {
       <Taskbar
         frames={frames}
         activeId={activeId}
+        workspaces={workspaceList}
         onOpenBoard={openBoard}
         onTaskButtonClick={onTaskButtonClick}
         onNewWork={() => setDialog({ type: "new-work" })}
+        onNewWorkspace={() => setDialog({ type: "new-workspace" })}
+        onInvitations={() => setDialog({ type: "invitations" })}
         onFind={() => setDialog({ type: "find" })}
         onHelp={() => setDialog({ type: "help" })}
         onLogOff={() => setDialog({ type: "log-off" })}

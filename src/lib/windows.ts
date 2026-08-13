@@ -1,5 +1,5 @@
 import type { Id } from "../../convex/_generated/dataModel";
-import { isBoardId, type BoardId } from "@/lib/boards";
+import { boardLabel, isBoardId, type BoardId } from "@/lib/boards";
 
 export type WindowId = BoardId | `ws:${string}`;
 
@@ -23,4 +23,17 @@ export function parseWindowId(
     };
   }
   return null;
+}
+
+export function windowTitle(
+  id: WindowId,
+  workspaces: { _id: Id<"workspaces">; name: string }[] = [],
+): string {
+  const parsed = parseWindowId(id);
+  if (!parsed) return id;
+  if (parsed.kind === "board") return boardLabel(parsed.board);
+  return (
+    workspaces.find((workspace) => workspace._id === parsed.workspaceId)
+      ?.name ?? "Workspace"
+  );
 }

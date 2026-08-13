@@ -9,7 +9,8 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { BoardWindow } from "@/components/board/board-window";
-import { isBoardId } from "@/lib/boards";
+import type { Id } from "../../../convex/_generated/dataModel";
+import { parseWindowId, windowTitle } from "@/lib/windows";
 import type { ResizeEdge, WindowFrame, WindowGeom, WindowId } from "@/lib/window-shell";
 
 const MIN_W = 280;
@@ -34,6 +35,8 @@ type WindowManagerProps = {
   focusOrder: WindowId[];
   activeId: WindowId | null;
   restoringIds?: ReadonlySet<WindowId>;
+  workspaces?: { _id: Id<"workspaces">; name: string }[];
+  onInvite?: (workspaceId: Id<"workspaces">) => void;
   onClose: (id: WindowId) => void;
   onFocus: (id: WindowId) => void;
   onMinimize: (id: WindowId) => void;
@@ -134,6 +137,8 @@ export function WindowManager({
   onMinimize,
   onToggleMaximize,
   onGeomChange,
+  workspaces = [],
+  onInvite,
 }: WindowManagerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -293,19 +298,44 @@ export function WindowManager({
             }}
             onPointerDown={() => onFocus(frame.id)}
           >
-            {isBoardId(frame.id) ? (
-              <BoardWindow
-                board={frame.id}
-                onClose={() => onClose(frame.id)}
-                onMinimize={() => onMinimize(frame.id)}
-                onMaximize={() => onToggleMaximize(frame.id)}
-                active={activeId === frame.id}
-                maximized={frame.maximized}
-                className="h-full w-full"
-                onTitlePointerDown={(e) => startMove(e, frame.id)}
-                onTitleDoubleClick={() => onToggleMaximize(frame.id)}
-              />
-            ) : null}
+            {(() => {
+              const parsed = parseWindowId(frame.id);
+              if (!parsed) return null;
+              if (parsed.kind === "board") {
+                return (
+                  <BoardWindow
+                    board={parsed.board}
+                    onClose={() => onClose(frame.id)}
+                    onMinimize={() => onMinimize(frame.id)}
+                    onMaximize={() => onToggleMaximize(frame.id)}
+                    active={activeId === frame.id}
+                    maximized={frame.maximized}
+                    className="h-full w-full"
+                    onTitlePointerDown={(e) => startMove(e, frame.id)}
+                    onTitleDoubleClick={() => onToggleMaximize(frame.id)}
+                  />
+                );
+              }
+              return (
+                <BoardWindow
+                  workspaceId={parsed.workspaceId}
+                  workspaceName={windowTitle(frame.id, workspaces)}
+                  onInvite={
+                    onInvite
+                      ? () => onInvite(parsed.workspaceId)
+                      : undefined
+                  }
+                  onClose={() => onClose(frame.id)}
+                  onMinimize={() => onMinimize(frame.id)}
+                  onMaximize={() => onToggleMaximize(frame.id)}
+                  active={activeId === frame.id}
+                  maximized={frame.maximized}
+                  className="h-full w-full"
+                  onTitlePointerDown={(e) => startMove(e, frame.id)}
+                  onTitleDoubleClick={() => onToggleMaximize(frame.id)}
+                />
+              );
+            })()}
             {!frame.maximized
               ? edges.map((edge) => (
                   <div

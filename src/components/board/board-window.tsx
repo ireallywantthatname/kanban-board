@@ -15,11 +15,15 @@ import { AppWindow } from "@/components/window/app-window";
 import { BOARDS, boardLabel, type BoardId } from "@/lib/boards";
 import { cn } from "@/lib/utils";
 import { isWorkDragging, startWorkDrag } from "@/lib/work-drag";
+import { Windows95NetworkNeighborhood } from "react-old-icons";
 
 const DRAG_THRESHOLD = 5;
 
 type BoardWindowProps = HTMLAttributes<HTMLDivElement> & {
-  board: BoardId;
+  board?: BoardId;
+  workspaceId?: Id<"workspaces">;
+  workspaceName?: string;
+  onInvite?: () => void;
   onClose: () => void;
   onMinimize?: () => void;
   onMaximize?: () => void;
@@ -31,6 +35,9 @@ type BoardWindowProps = HTMLAttributes<HTMLDivElement> & {
 
 export function BoardWindow({
   board,
+  workspaceId,
+  workspaceName,
+  onInvite,
   onClose,
   onMinimize,
   onMaximize,
@@ -42,7 +49,15 @@ export function BoardWindow({
   style,
   ...props
 }: BoardWindowProps) {
-  const works = useQuery(api.works.list, { board });
+  const isWorkspace = workspaceId !== undefined;
+  const works = useQuery(
+    api.works.list,
+    isWorkspace ? { workspaceId } : board ? { board } : "skip",
+  );
+  const members = useQuery(
+    api.workspaces.listMembers,
+    isWorkspace ? { workspaceId } : "skip",
+  );
   const create = useMutation(api.works.create);
   const remove = useMutation(api.works.remove);
   const move = useMutation(api.works.move);
@@ -53,8 +68,10 @@ export function BoardWindow({
   const [selectedId, setSelectedId] = useState<Id<"works"> | null>(null);
   const [editingId, setEditingId] = useState<Id<"works"> | null>(null);
   const [draft, setDraft] = useState("");
-  const BoardIcon = BOARDS.find((b) => b.id === board)?.Icon;
+  const BoardIcon = board ? BOARDS.find((b) => b.id === board)?.Icon : undefined;
+  const TitleIcon = isWorkspace ? Windows95NetworkNeighborhood : BoardIcon;
   const count = works?.length;
+  const memberCount = members?.length;
   const pendingRef = useRef(false);
   const editRef = useRef<Id<"works"> | null>(null);
 
@@ -76,6 +93,7 @@ export function BoardWindow({
     e: ReactPointerEvent<HTMLLIElement>,
     work: { _id: Id<"works">; title: string },
   ) {
+    if (isWorkspace || !board) return;
     if (e.button !== 0) return;
     if ((e.target as HTMLElement).closest("button, input, label")) return;
     if (editingId === work._id) return;
@@ -93,7 +111,7 @@ export function BoardWindow({
       startWorkDrag(
         {
           workId: work._id,
-          fromBoard: board,
+          fromBoard: board!,
           title: work.title,
           sourceEl,
         },
@@ -153,35 +171,45 @@ export function BoardWindow({
     if (!value || busy) return;
     setBusy(true);
     try {
-      await create({ board, title: value });
+      if (workspaceId) {
+        await create({ workspaceId, title: value });
+      } else if (board) {
+        await create({ board, title: value });
+      }
       setTitle("");
     } finally {
       setBusy(false);
     }
   }
 
+  const status =
+    works === undefined
+      ? "Loading..."
+      : [
+          count === 1 ? "1 item" : `${count ?? 0} items`,
+          isWorkspace && memberCount !== undefined
+            ? memberCount === 1
+              ? "1 member"
+              : `${memberCount} members`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+
   return (
     <AppWindow
-      title={boardLabel(board)}
+      title={isWorkspace ? (workspaceName ?? "Workspace") : board ? boardLabel(board) : "Board"}
       onClose={onClose}
       onMinimize={onMinimize}
       onMaximize={onMaximize}
       active={active}
       maximized={maximized}
-      icon={BoardIcon ? <BoardIcon size={16} /> : undefined}
+      icon={TitleIcon ? <TitleIcon size={16} /> : undefined}
       className={className}
       style={style}
       onTitlePointerDown={onTitlePointerDown}
       onTitleDoubleClick={onTitleDoubleClick}
-      statusBar={
-        <p className="status-bar-field">
-          {works === undefined
-            ? "Loading..."
-            : count === 1
-              ? "1 item"
-              : `${count ?? 0} items`}
-        </p>
-      }
+      statusBar={<p className="status-bar-field">{status}</p>}
       {...props}
     >
       <form onSubmit={onAdd} className="field-row board-add-form">
@@ -200,8 +228,16 @@ export function BoardWindow({
         >
           Add
         </button>
+        {onInvite ? (
+          <button type="button" onClick={onInvite}>
+            Invite…
+          </button>
+        ) : null}
       </form>
-      <div className="sunken-panel board-list" data-board-drop={board}>
+      <div
+        className="sunken-panel board-list"
+        data-board-drop={board && !isWorkspace ? board : undefined}
+      >
         {works === undefined ? (
           <div className="board-loading">Loading list...</div>
         ) : (

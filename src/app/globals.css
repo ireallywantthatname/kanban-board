@@ -417,6 +417,8 @@ body.work-dragging * {
   padding: 2px;
   list-style: none;
   min-width: 160px;
+  max-height: 240px;
+  overflow-y: auto;
   background: #c0c0c0;
   box-shadow:
     inset -1px -1px #0a0a0a,
@@ -457,8 +459,44 @@ body.work-dragging * {
   overflow: auto;
 }
 
-.shell-dialog-find {
+.shell-dialog-find,
+.shell-dialog-invite {
   max-width: 400px;
+}
+
+.invite-section-label {
+  margin: 0 0 4px;
+  font-weight: 700;
+}
+
+.invite-list {
+  height: 120px;
+  overflow: auto;
+  margin-bottom: 8px;
+}
+
+.invite-list-tall {
+  height: 180px;
+}
+
+.invite-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+}
+
+.invite-row-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invite-row-role {
+  flex-shrink: 0;
+  color: #808080;
 }
 
 .shell-dialog-session {

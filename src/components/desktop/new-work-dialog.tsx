@@ -1,21 +1,24 @@
 "use client";
 
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { FormEvent, useEffect, useState } from "react";
 import { Windows95Notepad } from "react-old-icons";
 import { api } from "../../../convex/_generated/api";
 import { AppWindow } from "@/components/window/app-window";
-import { BOARDS, type BoardId } from "@/lib/boards";
+import { BOARDS, isBoardId } from "@/lib/boards";
+import type { WindowId } from "@/lib/window-shell";
+import { parseWindowId, workspaceWindowId } from "@/lib/windows";
 
 type NewWorkDialogProps = {
   onClose: () => void;
-  onCreated: (board: BoardId) => void;
+  onCreated: (id: WindowId) => void;
 };
 
 export function NewWorkDialog({ onClose, onCreated }: NewWorkDialogProps) {
   const create = useMutation(api.works.create);
+  const workspaces = useQuery(api.workspaces.listMine);
   const [title, setTitle] = useState("");
-  const [board, setBoard] = useState<BoardId>("today");
+  const [destination, setDestination] = useState<WindowId>("today");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,8 +37,15 @@ export function NewWorkDialog({ onClose, onCreated }: NewWorkDialogProps) {
     setBusy(true);
     setError(null);
     try {
-      await create({ board, title: value });
-      onCreated(board);
+      const parsed = parseWindowId(destination);
+      if (parsed?.kind === "workspace") {
+        await create({ workspaceId: parsed.workspaceId, title: value });
+      } else if (isBoardId(destination)) {
+        await create({ board: destination, title: value });
+      } else {
+        throw new Error("Could not create work.");
+      }
+      onCreated(destination);
     } catch {
       setError("Could not create work.");
       setBusy(false);
@@ -79,16 +89,30 @@ export function NewWorkDialog({ onClose, onCreated }: NewWorkDialogProps) {
             </label>
             <select
               id="new-work-board"
-              value={board}
-              onChange={(e) => setBoard(e.target.value as BoardId)}
+              value={destination}
+              onChange={(e) => setDestination(e.target.value as WindowId)}
               disabled={busy}
               className="shell-dialog-select"
             >
-              {BOARDS.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.label}
-                </option>
-              ))}
+              <optgroup label="Personal">
+                {BOARDS.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.label}
+                  </option>
+                ))}
+              </optgroup>
+              {workspaces && workspaces.length > 0 ? (
+                <optgroup label="Workspaces">
+                  {workspaces.map((workspace) => (
+                    <option
+                      key={workspace._id}
+                      value={workspaceWindowId(workspace._id)}
+                    >
+                      {workspace.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
             </select>
           </div>
           {error ? <p className="shell-dialog-error">{error}</p> : null}

@@ -3,25 +3,32 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Windows95Help,
+  Windows95Inbox,
+  Windows95NetworkNeighborhood,
   Windows95Notepad,
   Windows95SavedSearch,
   WindowsFolder,
   WindowsShutDown,
   WindowsXPLogOff,
 } from "react-old-icons";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { BOARDS } from "@/lib/boards";
-import type { WindowId } from "@/lib/window-shell";
 import { cn } from "@/lib/utils";
+import type { WindowId } from "@/lib/window-shell";
+import { workspaceWindowId } from "@/lib/windows";
 
 type StartMenuProps = {
   open: boolean;
   onClose: () => void;
   onOpenBoard: (board: WindowId) => void;
   onNewWork: () => void;
+  onNewWorkspace: () => void;
+  onInvitations: () => void;
   onFind: () => void;
   onHelp: () => void;
   onLogOff: () => void;
   onShutDown: () => void;
+  workspaces?: { _id: Id<"workspaces">; name: string }[];
 };
 
 export function StartMenu({
@@ -29,17 +36,20 @@ export function StartMenu({
   onClose,
   onOpenBoard,
   onNewWork,
+  onNewWorkspace,
+  onInvitations,
   onFind,
   onHelp,
   onLogOff,
   onShutDown,
+  workspaces = [],
 }: StartMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [programsOpen, setProgramsOpen] = useState(false);
+  const [flyout, setFlyout] = useState<null | "programs" | "workspaces">(null);
 
   useEffect(() => {
     if (!open) {
-      setProgramsOpen(false);
+      setFlyout(null);
       return;
     }
     function onPointerDown(e: PointerEvent) {
@@ -73,15 +83,15 @@ export function StartMenu({
       <ul className="start-menu-list">
         <li
           className="start-menu-programs"
-          onPointerEnter={() => setProgramsOpen(true)}
+          onPointerEnter={() => setFlyout("programs")}
         >
           <button
             type="button"
-            className={cn("start-menu-item has-submenu", programsOpen && "open")}
+            className={cn("start-menu-item has-submenu", flyout === "programs" && "open")}
             role="menuitem"
             aria-haspopup="true"
-            aria-expanded={programsOpen}
-            onClick={() => setProgramsOpen(true)}
+            aria-expanded={flyout === "programs"}
+            onClick={() => setFlyout("programs")}
           >
             <span className="start-menu-item-icon">
               <WindowsFolder size={24} />
@@ -89,7 +99,7 @@ export function StartMenu({
             <span className="start-menu-item-label">Programs</span>
             <span className="start-menu-submenu-arrow" aria-hidden="true" />
           </button>
-          {programsOpen ? (
+          {flyout === "programs" ? (
             <ul className="start-menu-submenu" role="menu">
               {BOARDS.map((board) => (
                 <li key={board.id}>
@@ -112,7 +122,69 @@ export function StartMenu({
             </ul>
           ) : null}
         </li>
-        <li onPointerEnter={() => setProgramsOpen(false)}>
+        <li
+          className="start-menu-programs"
+          onPointerEnter={() => setFlyout("workspaces")}
+        >
+          <button
+            type="button"
+            className={cn(
+              "start-menu-item has-submenu",
+              flyout === "workspaces" && "open",
+            )}
+            role="menuitem"
+            aria-haspopup="true"
+            aria-expanded={flyout === "workspaces"}
+            onClick={() => setFlyout("workspaces")}
+          >
+            <span className="start-menu-item-icon">
+              <Windows95NetworkNeighborhood size={24} />
+            </span>
+            <span className="start-menu-item-label">Workspaces</span>
+            <span className="start-menu-submenu-arrow" aria-hidden="true" />
+          </button>
+          {flyout === "workspaces" ? (
+            <ul className="start-menu-submenu" role="menu">
+              {workspaces.map((workspace) => (
+                <li key={workspace._id}>
+                  <button
+                    type="button"
+                    className="start-menu-item"
+                    role="menuitem"
+                    onClick={() => {
+                      onOpenBoard(workspaceWindowId(workspace._id));
+                      onClose();
+                    }}
+                  >
+                    <span className="start-menu-item-icon">
+                      <Windows95NetworkNeighborhood size={24} />
+                    </span>
+                    <span className="start-menu-item-label">
+                      {workspace.name}
+                    </span>
+                  </button>
+                </li>
+              ))}
+              {workspaces.length > 0 ? (
+                <li className="start-menu-divider" role="separator" />
+              ) : null}
+              <li>
+                <button
+                  type="button"
+                  className="start-menu-item"
+                  role="menuitem"
+                  onClick={() => run(onNewWorkspace)}
+                >
+                  <span className="start-menu-item-icon">
+                    <Windows95NetworkNeighborhood size={24} />
+                  </span>
+                  <span className="start-menu-item-label">New Workspace…</span>
+                </button>
+              </li>
+            </ul>
+          ) : null}
+        </li>
+        <li onPointerEnter={() => setFlyout(null)}>
           <button
             type="button"
             className="start-menu-item"
@@ -125,7 +197,7 @@ export function StartMenu({
             <span className="start-menu-item-label">New Work…</span>
           </button>
         </li>
-        <li onPointerEnter={() => setProgramsOpen(false)}>
+        <li onPointerEnter={() => setFlyout(null)}>
           <button
             type="button"
             className="start-menu-item"
@@ -138,7 +210,20 @@ export function StartMenu({
             <span className="start-menu-item-label">Find…</span>
           </button>
         </li>
-        <li onPointerEnter={() => setProgramsOpen(false)}>
+        <li onPointerEnter={() => setFlyout(null)}>
+          <button
+            type="button"
+            className="start-menu-item"
+            role="menuitem"
+            onClick={() => run(onInvitations)}
+          >
+            <span className="start-menu-item-icon">
+              <Windows95Inbox size={24} />
+            </span>
+            <span className="start-menu-item-label">Invitations…</span>
+          </button>
+        </li>
+        <li onPointerEnter={() => setFlyout(null)}>
           <button
             type="button"
             className="start-menu-item"
@@ -152,7 +237,7 @@ export function StartMenu({
           </button>
         </li>
         <li className="start-menu-divider" role="separator" />
-        <li onPointerEnter={() => setProgramsOpen(false)}>
+        <li onPointerEnter={() => setFlyout(null)}>
           <button
             type="button"
             className="start-menu-item"
@@ -165,7 +250,7 @@ export function StartMenu({
             <span className="start-menu-item-label">Log Off…</span>
           </button>
         </li>
-        <li onPointerEnter={() => setProgramsOpen(false)}>
+        <li onPointerEnter={() => setFlyout(null)}>
           <button
             type="button"
             className="start-menu-item"

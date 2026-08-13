@@ -30,9 +30,11 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
             <Windows95Help size={32} />
           </span>
           <ul className="help-dialog-list">
-            <li>Double-click a desktop icon to open a board.</li>
-            <li>Drag works between open board windows to move them.</li>
-            <li>Use Start → Programs to open boards.</li>
+            <li>Double-click a desktop icon to open a board or workspace.</li>
+            <li>Drag works between personal board windows to move them.</li>
+            <li>Use Start → Workspaces to create or open a shared board.</li>
+            <li>Invite others by email from a workspace window or icon.</li>
+            <li>Start → Invitations… opens invites sent to your email.</li>
             <li>Use Start → New Work… or Find… to create or search works.</li>
             <li>Log Off or Shut Down ends your session.</li>
           </ul>
