@@ -11,16 +11,9 @@ import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { AuthWindow } from "@/components/auth/auth-window";
 import { BootScreen } from "@/components/desktop/boot-screen";
-import { ConfirmDialog } from "@/components/desktop/confirm-dialog";
 import { ContextMenu } from "@/components/desktop/context-menu";
 import { DesktopIcon } from "@/components/desktop/desktop-icon";
-import { FindDialog } from "@/components/desktop/find-dialog";
-import { HelpDialog } from "@/components/desktop/help-dialog";
-import { InviteDialog } from "@/components/desktop/invite-dialog";
-import { InvitationsDialog } from "@/components/desktop/invitations-dialog";
-import { NameWorkspaceDialog } from "@/components/desktop/name-workspace-dialog";
-import { NewWorkDialog } from "@/components/desktop/new-work-dialog";
-import { SessionDialog } from "@/components/desktop/session-dialog";
+import { ShutdownScreen } from "@/components/desktop/shutdown-screen";
 import { Taskbar } from "@/components/desktop/taskbar";
 import { WindowManager } from "@/components/window/window-manager";
 import {
@@ -33,8 +26,14 @@ import {
 } from "@/lib/animate-titlebar";
 import { BOARDS, type BoardId } from "@/lib/boards";
 import type { WindowFrame, WindowGeom, WindowId } from "@/lib/window-shell";
+import { playSound } from "@/lib/sound";
 import {
+  boundWorkspaceId,
+  deleteWorkspaceWindowId,
+  inviteWindowId,
+  leaveWorkspaceWindowId,
   parseWindowId,
+  renameWorkspaceWindowId,
   windowTitle,
   workspaceWindowId,
 } from "@/lib/windows";
@@ -48,20 +47,6 @@ type MenuState = {
     | { kind: "board"; id: BoardId }
     | { kind: "workspace"; id: Id<"workspaces"> };
 } | null;
-
-type ShellDialog =
-  | null
-  | { type: "new-work" }
-  | { type: "new-workspace" }
-  | { type: "find" }
-  | { type: "help" }
-  | { type: "log-off" }
-  | { type: "shut-down" }
-  | { type: "invite"; workspaceId: Id<"workspaces"> }
-  | { type: "invitations" }
-  | { type: "rename-workspace"; workspaceId: Id<"workspaces">; name: string }
-  | { type: "delete-workspace"; workspaceId: Id<"workspaces">; name: string }
-  | { type: "leave-workspace"; workspaceId: Id<"workspaces">; name: string };
 
 export function DesktopShell() {
   const { isLoading, isAuthenticated } = useConvexAuth();
@@ -82,7 +67,7 @@ export function DesktopShell() {
   const [focusOrder, setFocusOrder] = useState<WindowId[]>([]);
   const [selectedIcon, setSelectedIcon] = useState<IconId | null>(null);
   const [menu, setMenu] = useState<MenuState>(null);
-  const [dialog, setDialog] = useState<ShellDialog>(null);
+  const [poweredOff, setPoweredOff] = useState(false);
   const [restoringIds, setRestoringIds] = useState<Set<WindowId>>(
     () => new Set(),
   );
@@ -116,6 +101,7 @@ export function DesktopShell() {
       if (!frame || frame.minimized) return;
 
       animatingRef.current.add(board);
+      playSound("Minimize");
       try {
         const from = rectFromElement(windowTitlebarEl(board));
         const to = rectFromElement(taskbarButtonEl(board));
@@ -187,6 +173,15 @@ export function DesktopShell() {
         setSelectedIcon(board);
         return;
       }
+      const parsed = parseWindowId(board);
+      if (
+        parsed?.kind === "log-off" ||
+        parsed?.kind === "shut-down" ||
+        parsed?.kind === "delete-workspace" ||
+        parsed?.kind === "leave-workspace"
+      ) {
+        playSound("Default");
+      }
       setFrames((prev) => [
         ...prev,
         {
@@ -216,6 +211,7 @@ export function DesktopShell() {
   }, []);
 
   const toggleMaximize = useCallback((board: WindowId) => {
+    playSound("Maximize");
     setFrames((prev) =>
       prev.map((f) => {
         if (f.id !== board) return f;
@@ -269,16 +265,75 @@ export function DesktopShell() {
     setFocusOrder([]);
   }, []);
 
-  const closeDialog = useCallback(() => setDialog(null), []);
+  const handleCreateWorkspace = useCallback(
+    async (name: string) => {
+      const id = await createWorkspace({ name });
+      closeBoard("new-workspace");
+      openBoard(workspaceWindowId(id));
+    },
+    [closeBoard, createWorkspace, openBoard],
+  );
+
+  const handleRenameWorkspace = useCallback(
+    async (workspaceId: Id<"workspaces">, name: string) => {
+      await renameWorkspace({ workspaceId, name });
+      closeBoard(renameWorkspaceWindowId(workspaceId));
+    },
+    [closeBoard, renameWorkspace],
+  );
+
+  const handleDeleteWorkspace = useCallback(
+    async (workspaceId: Id<"workspaces">) => {
+      await removeWorkspace({ workspaceId });
+      closeBoard(workspaceWindowId(workspaceId));
+      closeBoard(deleteWorkspaceWindowId(workspaceId));
+    },
+    [closeBoard, removeWorkspace],
+  );
+
+  const handleLeaveWorkspace = useCallback(
+    async (workspaceId: Id<"workspaces">) => {
+      await leaveWorkspace({ workspaceId });
+      closeBoard(workspaceWindowId(workspaceId));
+      closeBoard(leaveWorkspaceWindowId(workspaceId));
+    },
+    [closeBoard, leaveWorkspace],
+  );
+
+  const handleWorkCreated = useCallback(
+    (id: WindowId) => {
+      closeBoard("new-work");
+      openBoard(id);
+    },
+    [closeBoard, openBoard],
+  );
+
+  const handleInviteAccepted = useCallback(
+    (workspaceId: Id<"workspaces">) => {
+      closeBoard("invitations");
+      openBoard(workspaceWindowId(workspaceId));
+    },
+    [closeBoard, openBoard],
+  );
+
+  const handleLogOff = useCallback(() => {
+    playSound("WindowsLogoff");
+    closeBoard("log-off");
+    void signOut();
+  }, [closeBoard, signOut]);
+
+  const handleShutDown = useCallback(() => {
+    playSound("SystemExit");
+    closeAllBoards();
+    setPoweredOff(true);
+  }, [closeAllBoards]);
 
   useEffect(() => {
     if (!workspaces) return;
-    const ids = new Set(
-      workspaces.map((workspace) => workspaceWindowId(workspace._id)),
-    );
+    const ids = new Set(workspaces.map((workspace) => workspace._id));
     for (const frame of frames) {
-      const parsed = parseWindowId(frame.id);
-      if (parsed?.kind === "workspace" && !ids.has(frame.id)) {
+      const workspaceId = boundWorkspaceId(frame.id);
+      if (workspaceId && !ids.has(workspaceId)) {
         closeBoard(frame.id);
       }
     }
@@ -287,10 +342,18 @@ export function DesktopShell() {
   useEffect(() => {
     if (openedInvitesRef.current) return;
     if (!pending || pending.length === 0) return;
-    if (dialog !== null) return;
     openedInvitesRef.current = true;
-    setDialog({ type: "invitations" });
-  }, [dialog, pending]);
+    openBoard("invitations");
+  }, [openBoard, pending]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    playSound("WindowsLogon");
+  }, [isAuthenticated]);
+
+  if (poweredOff) {
+    return <ShutdownScreen onPowerOn={() => window.location.reload()} />;
+  }
 
   if (isLoading) {
     return <BootScreen />;
@@ -337,7 +400,7 @@ export function DesktopShell() {
       {
         id: "invite",
         label: "Invite…",
-        onSelect: () => setDialog({ type: "invite", workspaceId }),
+        onSelect: () => openBoard(inviteWindowId(workspaceId)),
       },
       ...(isOwner
         ? [
@@ -345,21 +408,13 @@ export function DesktopShell() {
               id: "rename",
               label: "Rename…",
               onSelect: () =>
-                setDialog({
-                  type: "rename-workspace",
-                  workspaceId,
-                  name: workspace?.name ?? "",
-                }),
+                openBoard(renameWorkspaceWindowId(workspaceId)),
             },
             {
               id: "delete",
               label: "Delete",
               onSelect: () =>
-                setDialog({
-                  type: "delete-workspace",
-                  workspaceId,
-                  name: workspace?.name ?? "Workspace",
-                }),
+                openBoard(deleteWorkspaceWindowId(workspaceId)),
             },
           ]
         : [
@@ -367,11 +422,7 @@ export function DesktopShell() {
               id: "leave",
               label: "Leave",
               onSelect: () =>
-                setDialog({
-                  type: "leave-workspace",
-                  workspaceId,
-                  name: workspace?.name ?? "Workspace",
-                }),
+                openBoard(leaveWorkspaceWindowId(workspaceId)),
             },
           ]),
     ];
@@ -436,7 +487,7 @@ export function DesktopShell() {
               Icon={Windows95Inbox}
               selected={selectedIcon === "inbox"}
               onSelect={() => setSelectedIcon("inbox")}
-              onOpen={() => setDialog({ type: "invitations" })}
+              onOpen={() => openBoard("invitations")}
             />
           ) : null}
         </div>
@@ -446,9 +497,16 @@ export function DesktopShell() {
           activeId={activeId}
           restoringIds={restoringIds}
           workspaces={workspaceList}
-          onInvite={(workspaceId) =>
-            setDialog({ type: "invite", workspaceId })
-          }
+          onInvite={(workspaceId) => openBoard(inviteWindowId(workspaceId))}
+          onOpenBoard={openBoard}
+          onWorkCreated={handleWorkCreated}
+          onInviteAccepted={handleInviteAccepted}
+          onCreateWorkspace={handleCreateWorkspace}
+          onRenameWorkspace={handleRenameWorkspace}
+          onDeleteWorkspace={handleDeleteWorkspace}
+          onLeaveWorkspace={handleLeaveWorkspace}
+          onLogOff={handleLogOff}
+          onShutDown={handleShutDown}
           onClose={closeBoard}
           onFocus={focusBoard}
           onMinimize={(board) => {
@@ -465,116 +523,6 @@ export function DesktopShell() {
             items={menuItems}
           />
         ) : null}
-        {dialog?.type === "new-work" ? (
-          <NewWorkDialog
-            onClose={closeDialog}
-            onCreated={(id) => {
-              closeDialog();
-              openBoard(id);
-            }}
-          />
-        ) : null}
-        {dialog?.type === "new-workspace" ? (
-          <NameWorkspaceDialog
-            title="New Workspace"
-            message="Type a name for the workspace."
-            onClose={closeDialog}
-            onSubmit={async (name) => {
-              const id = await createWorkspace({ name });
-              closeDialog();
-              openBoard(workspaceWindowId(id));
-            }}
-          />
-        ) : null}
-        {dialog?.type === "rename-workspace" ? (
-          <NameWorkspaceDialog
-            title="Rename Workspace"
-            message="Type a new name for the workspace."
-            initialName={dialog.name}
-            onClose={closeDialog}
-            onSubmit={async (name) => {
-              await renameWorkspace({
-                workspaceId: dialog.workspaceId,
-                name,
-              });
-              closeDialog();
-            }}
-          />
-        ) : null}
-        {dialog?.type === "delete-workspace" ? (
-          <ConfirmDialog
-            title="Delete Workspace"
-            message={`Delete ${dialog.name}? All works will be removed.`}
-            confirmLabel="Yes"
-            cancelLabel="No"
-            Icon={Windows95NetworkNeighborhood}
-            onClose={closeDialog}
-            onConfirm={async () => {
-              await removeWorkspace({ workspaceId: dialog.workspaceId });
-              closeBoard(workspaceWindowId(dialog.workspaceId));
-              closeDialog();
-            }}
-          />
-        ) : null}
-        {dialog?.type === "leave-workspace" ? (
-          <ConfirmDialog
-            title="Leave Workspace"
-            message={`Leave ${dialog.name}?`}
-            confirmLabel="Yes"
-            cancelLabel="No"
-            Icon={Windows95NetworkNeighborhood}
-            onClose={closeDialog}
-            onConfirm={async () => {
-              await leaveWorkspace({ workspaceId: dialog.workspaceId });
-              closeBoard(workspaceWindowId(dialog.workspaceId));
-              closeDialog();
-            }}
-          />
-        ) : null}
-        {dialog?.type === "invite" ? (
-          <InviteDialog
-            workspaceId={dialog.workspaceId}
-            isOwner={
-              workspaceList.find((w) => w._id === dialog.workspaceId)
-                ?.role === "owner"
-            }
-            onClose={closeDialog}
-          />
-        ) : null}
-        {dialog?.type === "invitations" ? (
-          <InvitationsDialog
-            onClose={closeDialog}
-            onAccepted={(workspaceId) => {
-              closeDialog();
-              openBoard(workspaceWindowId(workspaceId));
-            }}
-          />
-        ) : null}
-        {dialog?.type === "find" ? (
-          <FindDialog onClose={closeDialog} onOpenBoard={openBoard} />
-        ) : null}
-        {dialog?.type === "help" ? <HelpDialog onClose={closeDialog} /> : null}
-        {dialog?.type === "log-off" ? (
-          <SessionDialog
-            kind="log-off"
-            onClose={closeDialog}
-            onConfirm={() => {
-              closeDialog();
-              void signOut();
-            }}
-          />
-        ) : null}
-        {dialog?.type === "shut-down" ? (
-          <SessionDialog
-            kind="shut-down"
-            onClose={closeDialog}
-            onConfirm={() => {
-              closeAllBoards();
-              closeDialog();
-              void signOut();
-            }}
-          />
-        ) : null}
       </div>
       <Taskbar
         frames={frames}
@@ -582,13 +530,6 @@ export function DesktopShell() {
         workspaces={workspaceList}
         onOpenBoard={openBoard}
         onTaskButtonClick={onTaskButtonClick}
-        onNewWork={() => setDialog({ type: "new-work" })}
-        onNewWorkspace={() => setDialog({ type: "new-workspace" })}
-        onInvitations={() => setDialog({ type: "invitations" })}
-        onFind={() => setDialog({ type: "find" })}
-        onHelp={() => setDialog({ type: "help" })}
-        onLogOff={() => setDialog({ type: "log-off" })}
-        onShutDown={() => setDialog({ type: "shut-down" })}
       />
     </div>
   );

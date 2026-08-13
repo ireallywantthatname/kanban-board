@@ -8,15 +8,16 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { BoardWindow } from "@/components/board/board-window";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { parseWindowId, windowTitle } from "@/lib/windows";
+import { defaultWindowSize } from "@/lib/windows";
 import type { ResizeEdge, WindowFrame, WindowGeom, WindowId } from "@/lib/window-shell";
+import {
+  ManagedWindow,
+  type WorkspaceInfo,
+} from "@/components/window/managed-window";
 
 const MIN_W = 280;
 const MIN_H = 200;
-const DEFAULT_W = 520;
-const DEFAULT_H = 360;
 const CASCADE = 24;
 const ORIGIN = 32;
 const TITLE_SLACK = 40;
@@ -35,8 +36,20 @@ type WindowManagerProps = {
   focusOrder: WindowId[];
   activeId: WindowId | null;
   restoringIds?: ReadonlySet<WindowId>;
-  workspaces?: { _id: Id<"workspaces">; name: string }[];
+  workspaces?: WorkspaceInfo[];
   onInvite?: (workspaceId: Id<"workspaces">) => void;
+  onOpenBoard: (id: WindowId) => void;
+  onWorkCreated: (id: WindowId) => void;
+  onInviteAccepted: (workspaceId: Id<"workspaces">) => void;
+  onCreateWorkspace: (name: string) => Promise<void>;
+  onRenameWorkspace: (
+    workspaceId: Id<"workspaces">,
+    name: string,
+  ) => Promise<void>;
+  onDeleteWorkspace: (workspaceId: Id<"workspaces">) => Promise<void>;
+  onLeaveWorkspace: (workspaceId: Id<"workspaces">) => Promise<void>;
+  onLogOff: () => void;
+  onShutDown: () => void;
   onClose: (id: WindowId) => void;
   onFocus: (id: WindowId) => void;
   onMinimize: (id: WindowId) => void;
@@ -44,10 +57,16 @@ type WindowManagerProps = {
   onGeomChange: (id: WindowId, geom: WindowGeom) => void;
 };
 
-function defaultGeom(index: number, containerW: number, containerH: number): WindowGeom {
+function defaultGeom(
+  id: WindowId,
+  index: number,
+  containerW: number,
+  containerH: number,
+): WindowGeom {
   const offset = (index % 4) * CASCADE;
-  const w = Math.max(MIN_W, Math.min(DEFAULT_W, Math.max(containerW - 64, MIN_W)));
-  const h = Math.max(MIN_H, Math.min(DEFAULT_H, Math.max(containerH - 64, MIN_H)));
+  const size = defaultWindowSize(id);
+  const w = Math.max(MIN_W, Math.min(size.w, Math.max(containerW - 64, MIN_W)));
+  const h = Math.max(MIN_H, Math.min(size.h, Math.max(containerH - 64, MIN_H)));
   return {
     x: ORIGIN + offset,
     y: ORIGIN + offset,
@@ -139,6 +158,15 @@ export function WindowManager({
   onGeomChange,
   workspaces = [],
   onInvite,
+  onOpenBoard,
+  onWorkCreated,
+  onInviteAccepted,
+  onCreateWorkspace,
+  onRenameWorkspace,
+  onDeleteWorkspace,
+  onLeaveWorkspace,
+  onLogOff,
+  onShutDown,
 }: WindowManagerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -218,7 +246,7 @@ export function WindowManager({
       result[frame.id] =
         localGeom[frame.id] ??
         frame.geom ??
-        defaultGeom(index, cw, ch);
+        defaultGeom(frame.id, index, cw, ch);
     });
     return result;
   }, [frames, localGeom, measure]);
@@ -298,44 +326,27 @@ export function WindowManager({
             }}
             onPointerDown={() => onFocus(frame.id)}
           >
-            {(() => {
-              const parsed = parseWindowId(frame.id);
-              if (!parsed) return null;
-              if (parsed.kind === "board") {
-                return (
-                  <BoardWindow
-                    board={parsed.board}
-                    onClose={() => onClose(frame.id)}
-                    onMinimize={() => onMinimize(frame.id)}
-                    onMaximize={() => onToggleMaximize(frame.id)}
-                    active={activeId === frame.id}
-                    maximized={frame.maximized}
-                    className="h-full w-full"
-                    onTitlePointerDown={(e) => startMove(e, frame.id)}
-                    onTitleDoubleClick={() => onToggleMaximize(frame.id)}
-                  />
-                );
-              }
-              return (
-                <BoardWindow
-                  workspaceId={parsed.workspaceId}
-                  workspaceName={windowTitle(frame.id, workspaces)}
-                  onInvite={
-                    onInvite
-                      ? () => onInvite(parsed.workspaceId)
-                      : undefined
-                  }
-                  onClose={() => onClose(frame.id)}
-                  onMinimize={() => onMinimize(frame.id)}
-                  onMaximize={() => onToggleMaximize(frame.id)}
-                  active={activeId === frame.id}
-                  maximized={frame.maximized}
-                  className="h-full w-full"
-                  onTitlePointerDown={(e) => startMove(e, frame.id)}
-                  onTitleDoubleClick={() => onToggleMaximize(frame.id)}
-                />
-              );
-            })()}
+            <ManagedWindow
+              id={frame.id}
+              workspaces={workspaces}
+              onOpenBoard={onOpenBoard}
+              onInvite={onInvite}
+              onWorkCreated={onWorkCreated}
+              onInviteAccepted={onInviteAccepted}
+              onCreateWorkspace={onCreateWorkspace}
+              onRenameWorkspace={onRenameWorkspace}
+              onDeleteWorkspace={onDeleteWorkspace}
+              onLeaveWorkspace={onLeaveWorkspace}
+              onLogOff={onLogOff}
+              onShutDown={onShutDown}
+              onClose={() => onClose(frame.id)}
+              onMinimize={() => onMinimize(frame.id)}
+              onMaximize={() => onToggleMaximize(frame.id)}
+              active={activeId === frame.id}
+              maximized={frame.maximized}
+              onTitlePointerDown={(e) => startMove(e, frame.id)}
+              onTitleDoubleClick={() => onToggleMaximize(frame.id)}
+            />
             {!frame.maximized
               ? edges.map((edge) => (
                   <div

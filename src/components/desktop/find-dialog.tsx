@@ -8,7 +8,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { AppWindow } from "@/components/window/app-window";
 import { boardLabel, isBoardId } from "@/lib/boards";
 import { cn } from "@/lib/utils";
-import type { WindowId } from "@/lib/window-shell";
+import type { WindowChrome, WindowId } from "@/lib/windows";
 import { workspaceWindowId } from "@/lib/windows";
 
 type FindWork = {
@@ -22,23 +22,23 @@ function targetForWork(work: FindWork): WindowId | null {
   return null;
 }
 
-type FindDialogProps = {
-  onClose: () => void;
+type FindDialogProps = WindowChrome & {
   onOpenBoard: (board: WindowId) => void;
 };
 
-export function FindDialog({ onClose, onOpenBoard }: FindDialogProps) {
+export function FindDialog({
+  onClose,
+  onOpenBoard,
+  onMinimize,
+  onMaximize,
+  active,
+  maximized,
+  onTitlePointerDown,
+  onTitleDoubleClick,
+}: FindDialogProps) {
   const works = useQuery(api.works.listAll);
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<Id<"works"> | null>(null);
-
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
 
   const filtered = useMemo(() => {
     if (works === undefined) return undefined;
@@ -76,95 +76,99 @@ export function FindDialog({ onClose, onOpenBoard }: FindDialogProps) {
         : `${count ?? 0} items`;
 
   return (
-    <div className="shell-dialog-root" role="presentation">
-      <AppWindow
-        title="Find Work"
-        icon={<Windows95SavedSearch size={16} />}
-        onClose={onClose}
-        className="shell-dialog shell-dialog-find"
-        statusBar={<p className="status-bar-field">{status}</p>}
-      >
-        <div className="field-row shell-dialog-field">
-          <label htmlFor="find-work-query" className="select-none">
-            Find:
-          </label>
-          <input
-            id="find-work-query"
-            type="text"
-            autoFocus
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="flex-1"
-          />
-        </div>
-        <div className="sunken-panel find-dialog-results">
-          {filtered === undefined ? (
-            <div className="board-loading">Searching...</div>
-          ) : works !== undefined && works.length === 0 ? (
-            <div className="board-empty">
-              <div>No works yet.</div>
-              <div className="board-empty-hint">
-                Create one with Start → New Work…
-              </div>
+    <AppWindow
+      title="Find Work"
+      icon={<Windows95SavedSearch size={16} />}
+      onClose={onClose}
+      onMinimize={onMinimize}
+      onMaximize={onMaximize}
+      active={active}
+      maximized={maximized}
+      onTitlePointerDown={onTitlePointerDown}
+      onTitleDoubleClick={onTitleDoubleClick}
+      className="h-full w-full"
+      statusBar={<p className="status-bar-field">{status}</p>}
+    >
+      <div className="field-row shell-dialog-field">
+        <label htmlFor="find-work-query" className="select-none">
+          Find:
+        </label>
+        <input
+          id="find-work-query"
+          type="text"
+          autoFocus
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="flex-1"
+        />
+      </div>
+      <div className="sunken-panel find-dialog-results">
+        {filtered === undefined ? (
+          <div className="board-loading">Searching...</div>
+        ) : works !== undefined && works.length === 0 ? (
+          <div className="board-empty">
+            <div>No works yet.</div>
+            <div className="board-empty-hint">
+              Create one with Start → New Work…
             </div>
-          ) : filtered.length === 0 ? (
-            <div className="board-empty">
-              <div>No matches.</div>
-              <div className="board-empty-hint">Try a different title.</div>
-            </div>
-          ) : (
-            <ul className="flex flex-col">
-              {filtered.map((work) => (
-                <li key={work._id}>
-                  <button
-                    type="button"
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="board-empty">
+            <div>No matches.</div>
+            <div className="board-empty-hint">Try a different title.</div>
+          </div>
+        ) : (
+          <ul className="flex flex-col">
+            {filtered.map((work) => (
+              <li key={work._id}>
+                <button
+                  type="button"
+                  className={cn(
+                    "find-result-row",
+                    selectedId === work._id && "selected",
+                  )}
+                  onClick={() => setSelectedId(work._id)}
+                  onDoubleClick={() => {
+                    const target = targetForWork(work);
+                    if (!target) return;
+                    onOpenBoard(target);
+                    onClose();
+                  }}
+                >
+                  <span
                     className={cn(
-                      "find-result-row",
-                      selectedId === work._id && "selected",
+                      "find-result-title",
+                      work.done && "line-through",
                     )}
-                    onClick={() => setSelectedId(work._id)}
-                    onDoubleClick={() => {
-                      const target = targetForWork(work);
-                      if (!target) return;
-                      onOpenBoard(target);
-                      onClose();
-                    }}
                   >
-                    <span
-                      className={cn(
-                        "find-result-title",
-                        work.done && "line-through",
-                      )}
-                    >
-                      {work.title}
-                    </span>
-                    <span className="find-result-board">
-                      {work.workspaceName
-                        ? work.workspaceName
-                        : work.board && isBoardId(work.board)
-                          ? boardLabel(work.board)
-                          : ""}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <div className="shell-dialog-actions">
-          <button
-            type="button"
-            className="default"
-            disabled={!selectedId}
-            onClick={openSelected}
-          >
-            Open
-          </button>
-          <button type="button" onClick={onClose}>
-            Cancel
-          </button>
-        </div>
-      </AppWindow>
-    </div>
+                    {work.title}
+                  </span>
+                  <span className="find-result-board">
+                    {work.workspaceName
+                      ? work.workspaceName
+                      : work.board && isBoardId(work.board)
+                        ? boardLabel(work.board)
+                        : ""}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <div className="shell-dialog-actions">
+        <button
+          type="button"
+          className="default"
+          disabled={!selectedId}
+          onClick={openSelected}
+        >
+          Open
+        </button>
+        <button type="button" onClick={onClose}>
+          Cancel
+        </button>
+      </div>
+    </AppWindow>
   );
 }

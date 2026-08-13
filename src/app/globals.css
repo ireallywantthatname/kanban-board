@@ -187,7 +187,7 @@ body.work-dragging * {
 
 .taskbar {
   position: relative;
-  z-index: 50;
+  z-index: 200;
   display: flex;
   align-items: center;
   gap: 2px;
@@ -323,7 +323,7 @@ body.work-dragging * {
   display: flex;
   align-items: stretch;
   min-width: 220px;
-  z-index: 60;
+  z-index: 210;
   background: #c0c0c0;
   box-shadow:
     inset -1px -1px #0a0a0a,
@@ -425,7 +425,7 @@ body.work-dragging * {
     inset 1px 1px #ffffff,
     inset -2px -2px #808080,
     inset 2px 2px #dfdfdf;
-  z-index: 61;
+  z-index: 211;
 }
 
 .start-menu-divider {
@@ -435,48 +435,20 @@ body.work-dragging * {
   border-bottom: 1px solid #ffffff;
 }
 
-.shell-dialog-root {
-  position: absolute;
-  inset: 0;
-  z-index: 80;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px;
-  box-sizing: border-box;
-  pointer-events: auto;
-}
-
-.shell-dialog {
-  width: 100%;
-  max-width: 360px;
-  height: auto;
-  max-height: calc(100% - 24px);
-}
-
-.shell-dialog > .window-body {
-  flex: 0 1 auto;
-  overflow: auto;
-}
-
-.shell-dialog-find,
-.shell-dialog-invite {
-  max-width: 400px;
-}
-
 .invite-section-label {
   margin: 0 0 4px;
   font-weight: 700;
 }
 
 .invite-list {
-  height: 120px;
+  flex: 1;
+  min-height: 80px;
   overflow: auto;
   margin-bottom: 8px;
 }
 
 .invite-list-tall {
-  height: 180px;
+  min-height: 120px;
 }
 
 .invite-row {
@@ -497,10 +469,6 @@ body.work-dragging * {
 .invite-row-role {
   flex-shrink: 0;
   color: #808080;
-}
-
-.shell-dialog-session {
-  max-width: 320px;
 }
 
 .shell-dialog-body {
@@ -570,7 +538,8 @@ body.work-dragging * {
 }
 
 .find-dialog-results {
-  height: 180px;
+  flex: 1;
+  min-height: 80px;
   overflow: auto;
   margin-bottom: 4px;
 }
@@ -735,7 +704,7 @@ body.work-dragging * {
 
 .context-menu {
   position: fixed;
-  z-index: 100;
+  z-index: 220;
   min-width: 140px;
   padding: 2px;
   background: #c0c0c0;
@@ -827,26 +796,22 @@ body.work-dragging * {
   padding: 0 6px;
 }
 
-.start-menu-banner {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  width: 22px;
-  flex-shrink: 0;
-  align-self: stretch;
-  padding: 4px 0 6px;
-  background: linear-gradient(180deg, #000080 0%, #1084d0 100%);
+.shutdown-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: #000000;
+  min-width: 0;
+  min-height: 0;
+  box-shadow: none;
+  cursor: default;
 }
 
-.start-menu-banner-text {
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 12px;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-  transform: rotate(180deg);
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
+.shutdown-overlay-image {
+  object-fit: fill;
 }
 
 .auth-shell,

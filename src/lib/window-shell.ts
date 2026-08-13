@@ -1,6 +1,6 @@
-import type { WindowId } from "@/lib/windows";
+import type { WindowChrome, WindowId } from "@/lib/windows";
 
-export type { WindowId };
+export type { WindowChrome, WindowId };
 
 export type WindowGeom = {
   x: number;

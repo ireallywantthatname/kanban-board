@@ -2,11 +2,21 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Windows95NetworkNeighborhood } from "react-old-icons";
+import {
+  Windows95Help,
+  Windows95Inbox,
+  Windows95NetworkNeighborhood,
+  Windows95Notepad,
+  Windows95SavedSearch,
+  WindowsShutDown,
+  WindowsXPLogOff,
+  WindowsXPUsers,
+} from "react-old-icons";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { BOARDS, isBoardId } from "@/lib/boards";
+import { BOARDS } from "@/lib/boards";
 import type { WindowFrame, WindowId } from "@/lib/window-shell";
-import { windowTitle } from "@/lib/windows";
+import { playSound } from "@/lib/sound";
+import { parseWindowId, windowTitle } from "@/lib/windows";
 import { cn } from "@/lib/utils";
 import { Clock } from "./clock";
 import { StartMenu } from "./start-menu";
@@ -17,14 +27,39 @@ type TaskbarProps = {
   workspaces?: { _id: Id<"workspaces">; name: string }[];
   onOpenBoard: (board: WindowId) => void;
   onTaskButtonClick: (board: WindowId) => void;
-  onNewWork: () => void;
-  onNewWorkspace: () => void;
-  onInvitations: () => void;
-  onFind: () => void;
-  onHelp: () => void;
-  onLogOff: () => void;
-  onShutDown: () => void;
 };
+
+function TaskbarIcon({ id }: { id: WindowId }) {
+  const parsed = parseWindowId(id);
+  switch (parsed?.kind) {
+    case "board": {
+      const Icon = BOARDS.find((b) => b.id === parsed.board)?.Icon;
+      return Icon ? <Icon size={16} /> : null;
+    }
+    case "workspace":
+    case "new-workspace":
+    case "rename-workspace":
+    case "delete-workspace":
+    case "leave-workspace":
+      return <Windows95NetworkNeighborhood size={16} />;
+    case "find":
+      return <Windows95SavedSearch size={16} />;
+    case "new-work":
+      return <Windows95Notepad size={16} />;
+    case "help":
+      return <Windows95Help size={16} />;
+    case "invitations":
+      return <Windows95Inbox size={16} />;
+    case "invite":
+      return <WindowsXPUsers size={16} />;
+    case "log-off":
+      return <WindowsXPLogOff size={16} />;
+    case "shut-down":
+      return <WindowsShutDown size={16} />;
+    default:
+      return <Windows95Notepad size={16} />;
+  }
+}
 
 export function Taskbar({
   frames,
@@ -32,13 +67,6 @@ export function Taskbar({
   workspaces = [],
   onOpenBoard,
   onTaskButtonClick,
-  onNewWork,
-  onNewWorkspace,
-  onInvitations,
-  onFind,
-  onHelp,
-  onLogOff,
-  onShutDown,
 }: TaskbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -48,7 +76,13 @@ export function Taskbar({
         <button
           type="button"
           className={cn("taskbar-start-button", menuOpen && "active")}
-          onClick={() => setMenuOpen((v) => !v)}
+          onClick={() =>
+            setMenuOpen((v) => {
+              const next = !v;
+              if (next) playSound("MenuPopup");
+              return next;
+            })
+          }
         >
           <Image
             src="/icons/windows-start.png"
@@ -64,22 +98,12 @@ export function Taskbar({
           open={menuOpen}
           onClose={() => setMenuOpen(false)}
           onOpenBoard={onOpenBoard}
-          onNewWork={onNewWork}
-          onNewWorkspace={onNewWorkspace}
-          onInvitations={onInvitations}
-          onFind={onFind}
-          onHelp={onHelp}
-          onLogOff={onLogOff}
-          onShutDown={onShutDown}
           workspaces={workspaces}
         />
       </div>
       <div className="taskbar-divider" />
       <div className="taskbar-apps" aria-label="Running applications">
         {frames.map((frame) => {
-          const def = isBoardId(frame.id)
-            ? BOARDS.find((b) => b.id === frame.id)
-            : undefined;
           const selected = activeId === frame.id && !frame.minimized;
           return (
             <button
@@ -89,11 +113,7 @@ export function Taskbar({
               className={cn("taskbar-app-button", selected && "selected")}
               onClick={() => onTaskButtonClick(frame.id)}
             >
-              {def ? (
-                <def.Icon size={16} />
-              ) : (
-                <Windows95NetworkNeighborhood size={16} />
-              )}
+              <TaskbarIcon id={frame.id} />
               <span className="taskbar-app-label">
                 {windowTitle(frame.id, workspaces)}
               </span>

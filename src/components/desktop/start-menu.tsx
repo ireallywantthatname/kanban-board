@@ -21,13 +21,6 @@ type StartMenuProps = {
   open: boolean;
   onClose: () => void;
   onOpenBoard: (board: WindowId) => void;
-  onNewWork: () => void;
-  onNewWorkspace: () => void;
-  onInvitations: () => void;
-  onFind: () => void;
-  onHelp: () => void;
-  onLogOff: () => void;
-  onShutDown: () => void;
   workspaces?: { _id: Id<"workspaces">; name: string }[];
 };
 
@@ -35,13 +28,6 @@ export function StartMenu({
   open,
   onClose,
   onOpenBoard,
-  onNewWork,
-  onNewWorkspace,
-  onInvitations,
-  onFind,
-  onHelp,
-  onLogOff,
-  onShutDown,
   workspaces = [],
 }: StartMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -70,16 +56,13 @@ export function StartMenu({
 
   if (!open) return null;
 
-  function run(action: () => void) {
+  function run(id: WindowId) {
     onClose();
-    action();
+    onOpenBoard(id);
   }
 
   return (
     <div ref={ref} className="start-menu" role="menu" aria-label="Start Menu">
-      <div className="start-menu-banner" aria-hidden="true">
-        <span className="start-menu-banner-text">Windows 98</span>
-      </div>
       <ul className="start-menu-list">
         <li
           className="start-menu-programs"
@@ -107,10 +90,7 @@ export function StartMenu({
                     type="button"
                     className="start-menu-item"
                     role="menuitem"
-                    onClick={() => {
-                      onOpenBoard(board.id);
-                      onClose();
-                    }}
+                    onClick={() => run(board.id)}
                   >
                     <span className="start-menu-item-icon">
                       <board.Icon size={24} />
@@ -151,10 +131,7 @@ export function StartMenu({
                     type="button"
                     className="start-menu-item"
                     role="menuitem"
-                    onClick={() => {
-                      onOpenBoard(workspaceWindowId(workspace._id));
-                      onClose();
-                    }}
+                    onClick={() => run(workspaceWindowId(workspace._id))}
                   >
                     <span className="start-menu-item-icon">
                       <Windows95NetworkNeighborhood size={24} />
@@ -173,7 +150,7 @@ export function StartMenu({
                   type="button"
                   className="start-menu-item"
                   role="menuitem"
-                  onClick={() => run(onNewWorkspace)}
+                  onClick={() => run("new-workspace")}
                 >
                   <span className="start-menu-item-icon">
                     <Windows95NetworkNeighborhood size={24} />
@@ -189,7 +166,7 @@ export function StartMenu({
             type="button"
             className="start-menu-item"
             role="menuitem"
-            onClick={() => run(onNewWork)}
+            onClick={() => run("new-work")}
           >
             <span className="start-menu-item-icon">
               <Windows95Notepad size={24} />
@@ -202,7 +179,7 @@ export function StartMenu({
             type="button"
             className="start-menu-item"
             role="menuitem"
-            onClick={() => run(onFind)}
+            onClick={() => run("find")}
           >
             <span className="start-menu-item-icon">
               <Windows95SavedSearch size={24} />
@@ -215,7 +192,7 @@ export function StartMenu({
             type="button"
             className="start-menu-item"
             role="menuitem"
-            onClick={() => run(onInvitations)}
+            onClick={() => run("invitations")}
           >
             <span className="start-menu-item-icon">
               <Windows95Inbox size={24} />
@@ -228,7 +205,7 @@ export function StartMenu({
             type="button"
             className="start-menu-item"
             role="menuitem"
-            onClick={() => run(onHelp)}
+            onClick={() => run("help")}
           >
             <span className="start-menu-item-icon">
               <Windows95Help size={24} />
@@ -242,7 +219,7 @@ export function StartMenu({
             type="button"
             className="start-menu-item"
             role="menuitem"
-            onClick={() => run(onLogOff)}
+            onClick={() => run("log-off")}
           >
             <span className="start-menu-item-icon">
               <WindowsXPLogOff size={24} />
@@ -255,7 +232,7 @@ export function StartMenu({
             type="button"
             className="start-menu-item"
             role="menuitem"
-            onClick={() => run(onShutDown)}
+            onClick={() => run("shut-down")}
           >
             <span className="start-menu-item-icon">
               <WindowsShutDown size={24} />

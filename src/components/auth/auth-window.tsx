@@ -4,6 +4,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { FormEvent, useState } from "react";
 import { Windows95Password } from "react-old-icons";
 import { AppWindow } from "@/components/window/app-window";
+import { playSound } from "@/lib/sound";
 
 export function AuthWindow() {
   const { signIn } = useAuthActions();
@@ -20,6 +21,7 @@ export function AuthWindow() {
     try {
       await signIn("password", formData);
     } catch (err) {
+      playSound("SystemExclamation");
       setError(
         err instanceof Error
           ? err.message
