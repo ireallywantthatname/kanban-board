@@ -13,6 +13,11 @@ type TaskbarProps = {
   activeId: BoardId | null;
   onOpenBoard: (board: BoardId) => void;
   onTaskButtonClick: (board: BoardId) => void;
+  onNewWork: () => void;
+  onFind: () => void;
+  onHelp: () => void;
+  onLogOff: () => void;
+  onShutDown: () => void;
 };
 
 export function Taskbar({
@@ -20,6 +25,11 @@ export function Taskbar({
   activeId,
   onOpenBoard,
   onTaskButtonClick,
+  onNewWork,
+  onFind,
+  onHelp,
+  onLogOff,
+  onShutDown,
 }: TaskbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -45,6 +55,11 @@ export function Taskbar({
           open={menuOpen}
           onClose={() => setMenuOpen(false)}
           onOpenBoard={onOpenBoard}
+          onNewWork={onNewWork}
+          onFind={onFind}
+          onHelp={onHelp}
+          onLogOff={onLogOff}
+          onShutDown={onShutDown}
         />
       </div>
       <div className="taskbar-divider" />

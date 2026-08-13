@@ -1,10 +1,15 @@
 "use client";
 
+import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvexAuth } from "convex/react";
 import { useCallback, useRef, useState } from "react";
 import { AuthWindow } from "@/components/auth/auth-window";
 import { BootScreen } from "@/components/desktop/boot-screen";
 import { DesktopIcon } from "@/components/desktop/desktop-icon";
+import { FindDialog } from "@/components/desktop/find-dialog";
+import { HelpDialog } from "@/components/desktop/help-dialog";
+import { NewWorkDialog } from "@/components/desktop/new-work-dialog";
+import { SessionDialog } from "@/components/desktop/session-dialog";
 import { Taskbar } from "@/components/desktop/taskbar";
 import { ContextMenu } from "@/components/ui/context-menu";
 import { WindowManager } from "@/components/window/window-manager";
@@ -25,12 +30,22 @@ type MenuState = {
   board: BoardId;
 } | null;
 
+type ShellDialog =
+  | null
+  | { type: "new-work" }
+  | { type: "find" }
+  | { type: "help" }
+  | { type: "log-off" }
+  | { type: "shut-down" };
+
 export function DesktopShell() {
   const { isLoading, isAuthenticated } = useConvexAuth();
+  const { signOut } = useAuthActions();
   const [frames, setFrames] = useState<WindowFrame[]>([]);
   const [focusOrder, setFocusOrder] = useState<BoardId[]>([]);
   const [selectedIcon, setSelectedIcon] = useState<BoardId | null>(null);
   const [menu, setMenu] = useState<MenuState>(null);
+  const [dialog, setDialog] = useState<ShellDialog>(null);
   const [restoringIds, setRestoringIds] = useState<Set<BoardId>>(() => new Set());
   const animatingRef = useRef<Set<BoardId>>(new Set());
 
@@ -202,6 +217,15 @@ export function DesktopShell() {
     [activeId, focusBoard, frames, minimizeBoard, restoreBoard],
   );
 
+  const closeAllBoards = useCallback(() => {
+    animatingRef.current.clear();
+    setRestoringIds(new Set());
+    setFrames([]);
+    setFocusOrder([]);
+  }, []);
+
+  const closeDialog = useCallback(() => setDialog(null), []);
+
   if (isLoading) {
     return <BootScreen />;
   }
@@ -277,12 +301,51 @@ export function DesktopShell() {
             ]}
           />
         ) : null}
+        {dialog?.type === "new-work" ? (
+          <NewWorkDialog
+            onClose={closeDialog}
+            onCreated={(board) => {
+              closeDialog();
+              openBoard(board);
+            }}
+          />
+        ) : null}
+        {dialog?.type === "find" ? (
+          <FindDialog onClose={closeDialog} onOpenBoard={openBoard} />
+        ) : null}
+        {dialog?.type === "help" ? <HelpDialog onClose={closeDialog} /> : null}
+        {dialog?.type === "log-off" ? (
+          <SessionDialog
+            kind="log-off"
+            onClose={closeDialog}
+            onConfirm={() => {
+              closeDialog();
+              void signOut();
+            }}
+          />
+        ) : null}
+        {dialog?.type === "shut-down" ? (
+          <SessionDialog
+            kind="shut-down"
+            onClose={closeDialog}
+            onConfirm={() => {
+              closeAllBoards();
+              closeDialog();
+              void signOut();
+            }}
+          />
+        ) : null}
       </div>
       <Taskbar
         frames={frames}
         activeId={activeId}
         onOpenBoard={openBoard}
         onTaskButtonClick={onTaskButtonClick}
+        onNewWork={() => setDialog({ type: "new-work" })}
+        onFind={() => setDialog({ type: "find" })}
+        onHelp={() => setDialog({ type: "help" })}
+        onLogOff={() => setDialog({ type: "log-off" })}
+        onShutDown={() => setDialog({ type: "shut-down" })}
       />
     </div>
   );

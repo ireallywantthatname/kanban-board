@@ -372,7 +372,7 @@ body.work-dragging * {
   margin-bottom: 2px;
   display: flex;
   align-items: stretch;
-  min-width: 200px;
+  min-width: 220px;
   z-index: 60;
   background: #c0c0c0;
   box-shadow:
@@ -380,6 +380,7 @@ body.work-dragging * {
     inset 1px 1px #ffffff,
     inset -2px -2px #808080,
     inset 2px 2px #dfdfdf;
+  overflow: visible;
 }
 
 .start-menu-list {
@@ -389,7 +390,11 @@ body.work-dragging * {
   margin: 2px;
   padding: 0;
   list-style: none;
-  min-width: 160px;
+  min-width: 180px;
+}
+
+.start-menu-programs {
+  position: relative;
 }
 
 .start-menu-item {
@@ -409,8 +414,29 @@ body.work-dragging * {
   min-width: 0;
 }
 
+.start-menu-item-label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.start-menu-item.has-submenu {
+  padding-right: 4px;
+}
+
+.start-menu-submenu-arrow {
+  width: 0;
+  height: 0;
+  margin-left: 8px;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid currentColor;
+  flex-shrink: 0;
+}
+
 .start-menu-item:hover,
-.start-menu-item:focus-visible {
+.start-menu-item:focus-visible,
+.start-menu-item.open {
   background: #000080;
   color: #ffffff;
   outline: none;
@@ -432,11 +458,176 @@ body.work-dragging * {
   justify-content: center;
 }
 
+.start-menu-submenu {
+  position: absolute;
+  left: 100%;
+  top: -2px;
+  margin: 0;
+  margin-left: 2px;
+  padding: 2px;
+  list-style: none;
+  min-width: 160px;
+  background: #c0c0c0;
+  box-shadow:
+    inset -1px -1px #0a0a0a,
+    inset 1px 1px #ffffff,
+    inset -2px -2px #808080,
+    inset 2px 2px #dfdfdf;
+  z-index: 61;
+}
+
 .start-menu-divider {
   height: 2px;
   margin: 3px 2px;
   background: #808080;
   border-bottom: 1px solid #ffffff;
+}
+
+.shell-dialog-root {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+
+.shell-dialog {
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  max-height: calc(100% - 24px);
+}
+
+.shell-dialog > .window-body {
+  flex: 0 1 auto;
+  overflow: auto;
+}
+
+.shell-dialog-find {
+  max-width: 400px;
+}
+
+.shell-dialog-session {
+  max-width: 320px;
+}
+
+.shell-dialog-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.shell-dialog-body-stacked {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.shell-dialog-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+}
+
+.shell-dialog-message {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.shell-dialog-field {
+  margin-bottom: 8px;
+}
+
+.shell-dialog-field label {
+  min-width: 48px;
+}
+
+.shell-dialog-select {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+}
+
+.shell-dialog-error {
+  margin: 0 0 8px;
+  color: #800000;
+}
+
+.shell-dialog-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.help-dialog-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.help-dialog-list li {
+  margin-bottom: 6px;
+}
+
+.help-dialog-list li:last-child {
+  margin-bottom: 0;
+}
+
+.find-dialog-results {
+  height: 180px;
+  overflow: auto;
+  margin-bottom: 4px;
+}
+
+.find-result-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 4px 6px;
+  text-align: left;
+  color: #000000;
+  cursor: default;
+  font: inherit;
+  box-shadow: none;
+  min-height: 0;
+  min-width: 0;
+}
+
+.find-result-row:hover,
+.find-result-row:focus-visible {
+  background: #000080;
+  color: #ffffff;
+  outline: none;
+}
+
+.find-result-row.selected {
+  background: #000080;
+  color: #ffffff;
+}
+
+.find-result-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.find-result-board {
+  flex-shrink: 0;
+  opacity: 0.85;
+  font-size: 11px;
 }
 
 .desktop-icon {

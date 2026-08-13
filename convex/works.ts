@@ -3,19 +3,19 @@ import { mutation, query } from "./_generated/server";
 import { boardValidator } from "./schema";
 import { requireUserId } from "./lib";
 
+const workReturn = v.object({
+  _id: v.id("works"),
+  _creationTime: v.number(),
+  userId: v.id("users"),
+  board: boardValidator,
+  title: v.string(),
+});
+
 export const list = query({
   args: {
     board: boardValidator,
   },
-  returns: v.array(
-    v.object({
-      _id: v.id("works"),
-      _creationTime: v.number(),
-      userId: v.id("users"),
-      board: boardValidator,
-      title: v.string(),
-    }),
-  ),
+  returns: v.array(workReturn),
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
     return await ctx.db
@@ -25,6 +25,19 @@ export const list = query({
       )
       .order("desc")
       .take(200);
+  },
+});
+
+export const listAll = query({
+  args: {},
+  returns: v.array(workReturn),
+  handler: async (ctx) => {
+    const userId = await requireUserId(ctx);
+    return await ctx.db
+      .query("works")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .order("desc")
+      .take(500);
   },
 });
 

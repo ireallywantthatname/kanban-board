@@ -15,5 +15,7 @@ export default defineSchema({
     userId: v.id("users"),
     board: boardValidator,
     title: v.string(),
-  }).index("by_userId_and_board", ["userId", "board"]),
+  })
+    .index("by_userId_and_board", ["userId", "board"])
+    .index("by_userId", ["userId"]),
 });
