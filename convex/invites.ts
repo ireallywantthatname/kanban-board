@@ -112,12 +112,17 @@ export const listForWorkspace = query({
   returns: v.array(workspaceInviteReturn),
   handler: async (ctx, args) => {
     await requireMembership(ctx, args.workspaceId);
-    return await ctx.db
+    const invites = await ctx.db
       .query("workspaceInvites")
       .withIndex("by_workspaceId", (q) =>
         q.eq("workspaceId", args.workspaceId),
       )
       .take(100);
+    return invites.map((invite) => ({
+      _id: invite._id,
+      email: invite.email,
+      invitedBy: invite.invitedBy,
+    }));
   },
 });
 
