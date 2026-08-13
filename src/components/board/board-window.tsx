@@ -170,14 +170,6 @@ export function BoardWindow({
       <div className="sunken-panel board-list" data-board-drop={board}>
         {works === undefined ? (
           <div className="board-loading">Loading list...</div>
-        ) : works.length === 0 ? (
-          <div className="board-empty">
-            {BoardIcon ? <BoardIcon size={32} /> : null}
-            <div>This list is empty.</div>
-            <div className="board-empty-hint">
-              Type a title above and press Add.
-            </div>
-          </div>
         ) : (
           <ul className="flex flex-col">
             {works.map((work) => (
