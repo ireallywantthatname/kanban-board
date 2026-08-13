@@ -6,12 +6,13 @@ import { Windows95SavedSearch } from "react-old-icons";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { AppWindow } from "@/components/window/app-window";
-import { boardLabel, type BoardId } from "@/lib/boards";
+import { boardLabel, isBoardId } from "@/lib/boards";
 import { cn } from "@/lib/utils";
+import type { WindowId } from "@/lib/window-shell";
 
 type FindDialogProps = {
   onClose: () => void;
-  onOpenBoard: (board: BoardId) => void;
+  onOpenBoard: (board: WindowId) => void;
 };
 
 export function FindDialog({ onClose, onOpenBoard }: FindDialogProps) {
@@ -48,8 +49,10 @@ export function FindDialog({ onClose, onOpenBoard }: FindDialogProps) {
     if (!filtered || !selectedId) return;
     const work = filtered.find((w) => w._id === selectedId);
     if (!work) return;
-    onOpenBoard(work.board as BoardId);
-    onClose();
+    if (work.board && isBoardId(work.board)) {
+      onOpenBoard(work.board);
+      onClose();
+    }
   }
 
   const count = filtered?.length;
@@ -109,8 +112,10 @@ export function FindDialog({ onClose, onOpenBoard }: FindDialogProps) {
                     )}
                     onClick={() => setSelectedId(work._id)}
                     onDoubleClick={() => {
-                      onOpenBoard(work.board as BoardId);
-                      onClose();
+                      if (work.board && isBoardId(work.board)) {
+                        onOpenBoard(work.board);
+                        onClose();
+                      }
                     }}
                   >
                     <span
@@ -122,7 +127,9 @@ export function FindDialog({ onClose, onOpenBoard }: FindDialogProps) {
                       {work.title}
                     </span>
                     <span className="find-result-board">
-                      {boardLabel(work.board as BoardId)}
+                      {work.board && isBoardId(work.board)
+                        ? boardLabel(work.board)
+                        : ""}
                     </span>
                   </button>
                 </li>

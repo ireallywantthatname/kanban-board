@@ -1,5 +1,5 @@
 import type { Id } from "../../convex/_generated/dataModel";
-import type { BoardId } from "@/lib/boards";
+import { isBoardId, type BoardId } from "@/lib/boards";
 
 export type WorkDragPayload = {
   workId: Id<"works">;
@@ -29,15 +29,6 @@ type Session = {
 };
 
 let session: Session | null = null;
-
-function isBoardId(value: string): value is BoardId {
-  return (
-    value === "all" ||
-    value === "today" ||
-    value === "this_week" ||
-    value === "later"
-  );
-}
 
 function findBoardDropTarget(x: number, y: number): {
   el: HTMLElement;

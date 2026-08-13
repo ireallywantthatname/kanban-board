@@ -1,6 +1,6 @@
-import type { BoardId } from "@/lib/boards";
+import type { WindowId } from "@/lib/windows";
 
-export type WindowId = BoardId;
+export type { WindowId };
 
 export type WindowGeom = {
   x: number;

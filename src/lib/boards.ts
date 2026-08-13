@@ -25,3 +25,7 @@ export const BOARDS: BoardDef[] = [
 export function boardLabel(id: BoardId): string {
   return BOARDS.find((b) => b.id === id)?.label ?? id;
 }
+
+export function isBoardId(value: string): value is BoardId {
+  return BOARDS.some((b) => b.id === value);
+}

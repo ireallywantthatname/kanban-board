@@ -9,8 +9,8 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { BoardWindow } from "@/components/board/board-window";
-import type { BoardId } from "@/lib/boards";
-import type { ResizeEdge, WindowFrame, WindowGeom } from "@/lib/window-shell";
+import { isBoardId } from "@/lib/boards";
+import type { ResizeEdge, WindowFrame, WindowGeom, WindowId } from "@/lib/window-shell";
 
 const MIN_W = 280;
 const MIN_H = 200;
@@ -21,7 +21,7 @@ const ORIGIN = 32;
 const TITLE_SLACK = 40;
 
 type DragState = {
-  board: BoardId;
+  board: WindowId;
   kind: "move" | "resize";
   edge?: ResizeEdge;
   startX: number;
@@ -31,14 +31,14 @@ type DragState = {
 
 type WindowManagerProps = {
   frames: WindowFrame[];
-  focusOrder: BoardId[];
-  activeId: BoardId | null;
-  restoringIds?: ReadonlySet<BoardId>;
-  onClose: (board: BoardId) => void;
-  onFocus: (board: BoardId) => void;
-  onMinimize: (board: BoardId) => void;
-  onToggleMaximize: (board: BoardId) => void;
-  onGeomChange: (board: BoardId, geom: WindowGeom) => void;
+  focusOrder: WindowId[];
+  activeId: WindowId | null;
+  restoringIds?: ReadonlySet<WindowId>;
+  onClose: (id: WindowId) => void;
+  onFocus: (id: WindowId) => void;
+  onMinimize: (id: WindowId) => void;
+  onToggleMaximize: (id: WindowId) => void;
+  onGeomChange: (id: WindowId, geom: WindowGeom) => void;
 };
 
 function defaultGeom(index: number, containerW: number, containerH: number): WindowGeom {
@@ -137,7 +137,7 @@ export function WindowManager({
 }: WindowManagerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
-  const [localGeom, setLocalGeom] = useState<Partial<Record<BoardId, WindowGeom>>>({});
+  const [localGeom, setLocalGeom] = useState<Partial<Record<WindowId, WindowGeom>>>({});
 
   const measure = useCallback(() => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -152,7 +152,7 @@ export function WindowManager({
     setLocalGeom((prev) => {
       const next = { ...prev };
       let changed = false;
-      for (const key of Object.keys(next) as BoardId[]) {
+      for (const key of Object.keys(next) as WindowId[]) {
         if (!openIds.has(key)) {
           delete next[key];
           changed = true;
@@ -204,7 +204,7 @@ export function WindowManager({
 
   const resolved = useMemo(() => {
     const { w: cw, h: ch } = measure();
-    const result: Partial<Record<BoardId, WindowGeom>> = {};
+    const result: Partial<Record<WindowId, WindowGeom>> = {};
     frames.forEach((frame, index) => {
       if (frame.maximized) {
         result[frame.id] = { x: 0, y: 0, w: cw, h: ch };
@@ -219,7 +219,7 @@ export function WindowManager({
   }, [frames, localGeom, measure]);
 
   const zIndexFor = useCallback(
-    (board: BoardId) => {
+    (board: WindowId) => {
       const idx = focusOrder.lastIndexOf(board);
       if (idx >= 0) return 20 + idx;
       const openIdx = frames.findIndex((f) => f.id === board);
@@ -229,7 +229,7 @@ export function WindowManager({
   );
 
   const startMove = useCallback(
-    (e: ReactPointerEvent<HTMLElement>, board: BoardId) => {
+    (e: ReactPointerEvent<HTMLElement>, board: WindowId) => {
       const frame = frames.find((f) => f.id === board);
       if (!frame || frame.maximized || frame.minimized) return;
       const g = resolved[board];
@@ -248,7 +248,7 @@ export function WindowManager({
   );
 
   const startResize = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>, board: BoardId, edge: ResizeEdge) => {
+    (e: ReactPointerEvent<HTMLDivElement>, board: WindowId, edge: ResizeEdge) => {
       e.stopPropagation();
       e.preventDefault();
       const frame = frames.find((f) => f.id === board);
@@ -293,17 +293,19 @@ export function WindowManager({
             }}
             onPointerDown={() => onFocus(frame.id)}
           >
-            <BoardWindow
-              board={frame.id}
-              onClose={() => onClose(frame.id)}
-              onMinimize={() => onMinimize(frame.id)}
-              onMaximize={() => onToggleMaximize(frame.id)}
-              active={activeId === frame.id}
-              maximized={frame.maximized}
-              className="h-full w-full"
-              onTitlePointerDown={(e) => startMove(e, frame.id)}
-              onTitleDoubleClick={() => onToggleMaximize(frame.id)}
-            />
+            {isBoardId(frame.id) ? (
+              <BoardWindow
+                board={frame.id}
+                onClose={() => onClose(frame.id)}
+                onMinimize={() => onMinimize(frame.id)}
+                onMaximize={() => onToggleMaximize(frame.id)}
+                active={activeId === frame.id}
+                maximized={frame.maximized}
+                className="h-full w-full"
+                onTitlePointerDown={(e) => startMove(e, frame.id)}
+                onTitleDoubleClick={() => onToggleMaximize(frame.id)}
+              />
+            ) : null}
             {!frame.maximized
               ? edges.map((edge) => (
                   <div

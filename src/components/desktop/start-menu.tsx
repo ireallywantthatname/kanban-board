@@ -9,13 +9,14 @@ import {
   WindowsShutDown,
   WindowsXPLogOff,
 } from "react-old-icons";
-import { BOARDS, type BoardId } from "@/lib/boards";
+import { BOARDS } from "@/lib/boards";
+import type { WindowId } from "@/lib/window-shell";
 import { cn } from "@/lib/utils";
 
 type StartMenuProps = {
   open: boolean;
   onClose: () => void;
-  onOpenBoard: (board: BoardId) => void;
+  onOpenBoard: (board: WindowId) => void;
   onNewWork: () => void;
   onFind: () => void;
   onHelp: () => void;

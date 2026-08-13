@@ -2,17 +2,17 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { BOARDS, boardLabel, type BoardId } from "@/lib/boards";
-import type { WindowFrame } from "@/lib/window-shell";
+import { BOARDS, boardLabel, isBoardId } from "@/lib/boards";
+import type { WindowFrame, WindowId } from "@/lib/window-shell";
 import { cn } from "@/lib/utils";
 import { Clock } from "./clock";
 import { StartMenu } from "./start-menu";
 
 type TaskbarProps = {
   frames: WindowFrame[];
-  activeId: BoardId | null;
-  onOpenBoard: (board: BoardId) => void;
-  onTaskButtonClick: (board: BoardId) => void;
+  activeId: WindowId | null;
+  onOpenBoard: (board: WindowId) => void;
+  onTaskButtonClick: (board: WindowId) => void;
   onNewWork: () => void;
   onFind: () => void;
   onHelp: () => void;
@@ -65,7 +65,9 @@ export function Taskbar({
       <div className="taskbar-divider" />
       <div className="taskbar-apps" aria-label="Running applications">
         {frames.map((frame) => {
-          const def = BOARDS.find((b) => b.id === frame.id);
+          const def = isBoardId(frame.id)
+            ? BOARDS.find((b) => b.id === frame.id)
+            : undefined;
           const selected = activeId === frame.id && !frame.minimized;
           return (
             <button
@@ -76,7 +78,9 @@ export function Taskbar({
               onClick={() => onTaskButtonClick(frame.id)}
             >
               {def ? <def.Icon size={16} /> : null}
-              <span className="taskbar-app-label">{boardLabel(frame.id)}</span>
+              <span className="taskbar-app-label">
+                {isBoardId(frame.id) ? boardLabel(frame.id) : "Workspace"}
+              </span>
             </button>
           );
         })}

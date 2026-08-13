@@ -21,8 +21,12 @@ import {
   waitFrames,
   windowTitlebarEl,
 } from "@/lib/animate-titlebar";
-import { BOARDS, boardLabel, type BoardId } from "@/lib/boards";
-import type { WindowFrame, WindowGeom } from "@/lib/window-shell";
+import { BOARDS, boardLabel, isBoardId, type BoardId } from "@/lib/boards";
+import type { WindowFrame, WindowGeom, WindowId } from "@/lib/window-shell";
+
+function windowTitle(id: WindowId): string {
+  return isBoardId(id) ? boardLabel(id) : "Workspace";
+}
 
 type MenuState = {
   x: number;
@@ -42,30 +46,30 @@ export function DesktopShell() {
   const { isLoading, isAuthenticated } = useConvexAuth();
   const { signOut } = useAuthActions();
   const [frames, setFrames] = useState<WindowFrame[]>([]);
-  const [focusOrder, setFocusOrder] = useState<BoardId[]>([]);
+  const [focusOrder, setFocusOrder] = useState<WindowId[]>([]);
   const [selectedIcon, setSelectedIcon] = useState<BoardId | null>(null);
   const [menu, setMenu] = useState<MenuState>(null);
   const [dialog, setDialog] = useState<ShellDialog>(null);
-  const [restoringIds, setRestoringIds] = useState<Set<BoardId>>(() => new Set());
-  const animatingRef = useRef<Set<BoardId>>(new Set());
+  const [restoringIds, setRestoringIds] = useState<Set<WindowId>>(() => new Set());
+  const animatingRef = useRef<Set<WindowId>>(new Set());
 
   const activeId =
     focusOrder.filter((id) => frames.some((f) => f.id === id && !f.minimized)).at(-1) ??
     frames.filter((f) => !f.minimized).at(-1)?.id ??
     null;
 
-  const setMinimized = useCallback((board: BoardId, minimized: boolean) => {
+  const setMinimized = useCallback((board: WindowId, minimized: boolean) => {
     setFrames((prev) =>
       prev.map((f) => (f.id === board ? { ...f, minimized } : f)),
     );
   }, []);
 
-  const focusBoard = useCallback((board: BoardId) => {
+  const focusBoard = useCallback((board: WindowId) => {
     setFocusOrder((prev) => [...prev.filter((b) => b !== board), board]);
   }, []);
 
   const minimizeBoard = useCallback(
-    async (board: BoardId) => {
+    async (board: WindowId) => {
       if (animatingRef.current.has(board)) return;
       const frame = frames.find((f) => f.id === board);
       if (!frame || frame.minimized) return;
@@ -76,7 +80,7 @@ export function DesktopShell() {
         const to = rectFromElement(taskbarButtonEl(board));
         if (from && to) {
           await animateTitlebar(from, to, {
-            title: boardLabel(board),
+            title: windowTitle(board),
             iconHtml: titlebarIconHtml(board),
             active: activeId === board,
           });
@@ -90,7 +94,7 @@ export function DesktopShell() {
   );
 
   const restoreBoard = useCallback(
-    async (board: BoardId) => {
+    async (board: WindowId) => {
       if (animatingRef.current.has(board)) return;
       const frame = frames.find((f) => f.id === board);
       if (!frame || !frame.minimized) {
@@ -113,7 +117,7 @@ export function DesktopShell() {
         }
         if (from && to) {
           await animateTitlebar(from, to, {
-            title: boardLabel(board),
+            title: windowTitle(board),
             iconHtml: titlebarIconHtml(board),
             active: true,
           });
@@ -131,7 +135,7 @@ export function DesktopShell() {
   );
 
   const openBoard = useCallback(
-    (board: BoardId) => {
+    (board: WindowId) => {
       const existing = frames.find((f) => f.id === board);
       if (existing) {
         if (existing.minimized) {
@@ -139,7 +143,7 @@ export function DesktopShell() {
         } else {
           focusBoard(board);
         }
-        setSelectedIcon(board);
+        if (isBoardId(board)) setSelectedIcon(board);
         return;
       }
       setFrames((prev) => [
@@ -153,12 +157,12 @@ export function DesktopShell() {
         },
       ]);
       setFocusOrder((prev) => [...prev.filter((b) => b !== board), board]);
-      setSelectedIcon(board);
+      if (isBoardId(board)) setSelectedIcon(board);
     },
     [focusBoard, frames, restoreBoard],
   );
 
-  const closeBoard = useCallback((board: BoardId) => {
+  const closeBoard = useCallback((board: WindowId) => {
     animatingRef.current.delete(board);
     setRestoringIds((prev) => {
       if (!prev.has(board)) return prev;
@@ -170,7 +174,7 @@ export function DesktopShell() {
     setFocusOrder((prev) => prev.filter((b) => b !== board));
   }, []);
 
-  const toggleMaximize = useCallback((board: BoardId) => {
+  const toggleMaximize = useCallback((board: WindowId) => {
     setFrames((prev) =>
       prev.map((f) => {
         if (f.id !== board) return f;
@@ -192,7 +196,7 @@ export function DesktopShell() {
     setFocusOrder((prev) => [...prev.filter((b) => b !== board), board]);
   }, []);
 
-  const onGeomChange = useCallback((board: BoardId, geom: WindowGeom) => {
+  const onGeomChange = useCallback((board: WindowId, geom: WindowGeom) => {
     setFrames((prev) =>
       prev.map((f) =>
         f.id === board ? { ...f, geom, maximized: false } : f,
@@ -201,7 +205,7 @@ export function DesktopShell() {
   }, []);
 
   const onTaskButtonClick = useCallback(
-    (board: BoardId) => {
+    (board: WindowId) => {
       const frame = frames.find((f) => f.id === board);
       if (!frame) return;
       if (frame.minimized) {
