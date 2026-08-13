@@ -77,7 +77,7 @@ export function BoardWindow({
     work: { _id: Id<"works">; title: string },
   ) {
     if (e.button !== 0) return;
-    if ((e.target as HTMLElement).closest("button, input")) return;
+    if ((e.target as HTMLElement).closest("button, input, label")) return;
     if (editingId === work._id) return;
     if (isWorkDragging() || pendingRef.current) return;
 
@@ -220,13 +220,17 @@ export function BoardWindow({
                 }}
                 onFocus={() => setSelectedId(work._id)}
               >
-                <input
-                  type="checkbox"
-                  checked={work.done === true}
-                  onChange={(e) => {
-                    void setDone({ id: work._id, done: e.target.checked });
-                  }}
-                />
+                <div className="field-row">
+                  <input
+                    id={`work-done-${work._id}`}
+                    type="checkbox"
+                    checked={work.done === true}
+                    onChange={(e) => {
+                      void setDone({ id: work._id, done: e.target.checked });
+                    }}
+                  />
+                  <label htmlFor={`work-done-${work._id}`}>&nbsp;</label>
+                </div>
                 {editingId === work._id ? (
                   <input
                     type="text"
