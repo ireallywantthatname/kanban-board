@@ -140,6 +140,10 @@ ul.tree-view {
   text-shadow: 0 0 #000;
 }
 
+.work-row.selected input[type="text"] {
+  color: #000;
+}
+
 .work-row.work-drag-source {
   opacity: 0.4;
 }

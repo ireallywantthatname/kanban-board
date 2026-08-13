@@ -238,6 +238,7 @@ export function BoardWindow({
                     autoFocus
                     className="flex-1"
                     onChange={(e) => setDraft(e.target.value)}
+                    onFocus={(e) => e.currentTarget.select()}
                     onBlur={() => void saveEdit()}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
