@@ -113,7 +113,14 @@ export function FindDialog({ onClose, onOpenBoard }: FindDialogProps) {
                       onClose();
                     }}
                   >
-                    <span className="find-result-title">{work.title}</span>
+                    <span
+                      className={cn(
+                        "find-result-title",
+                        work.done && "line-through",
+                      )}
+                    >
+                      {work.title}
+                    </span>
                     <span className="find-result-board">
                       {boardLabel(work.board as BoardId)}
                     </span>

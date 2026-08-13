@@ -247,7 +247,14 @@ export function BoardWindow({
                     }}
                   />
                 ) : (
-                  <span className="flex-1 break-words">{work.title}</span>
+                  <span
+                    className={cn(
+                      "flex-1 break-words",
+                      work.done && "line-through",
+                    )}
+                  >
+                    {work.title}
+                  </span>
                 )}
                 <button
                   type="button"
