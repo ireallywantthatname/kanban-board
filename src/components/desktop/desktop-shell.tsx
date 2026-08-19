@@ -25,6 +25,11 @@ import {
   windowTitlebarEl,
 } from "@/lib/animate-titlebar";
 import { BOARDS, type BoardId } from "@/lib/boards";
+import {
+  loadSession,
+  saveSession,
+  useCachedWorkspaces,
+} from "@/lib/persist";
 import type { WindowFrame, WindowGeom, WindowId } from "@/lib/window-shell";
 import { playSound } from "@/lib/sound";
 import {
@@ -51,10 +56,8 @@ type MenuState = {
 export function DesktopShell() {
   const { isLoading, isAuthenticated } = useConvexAuth();
   const { signOut } = useAuthActions();
-  const workspaces = useQuery(
-    api.workspaces.listMine,
-    isAuthenticated ? {} : "skip",
-  );
+  const me = useQuery(api.users.current, isAuthenticated ? {} : "skip");
+  const workspaces = useCachedWorkspaces(isAuthenticated);
   const pending = useQuery(
     api.invites.listPending,
     isAuthenticated ? {} : "skip",
@@ -71,8 +74,10 @@ export function DesktopShell() {
   const [restoringIds, setRestoringIds] = useState<Set<WindowId>>(
     () => new Set(),
   );
+  const [sessionReady, setSessionReady] = useState(false);
   const animatingRef = useRef<Set<WindowId>>(new Set());
   const openedInvitesRef = useRef(false);
+  const hydratedUserRef = useRef<string | null>(null);
   const workspaceList = workspaces ?? [];
   const titleFor = useCallback(
     (id: WindowId) => windowTitle(id, workspaceList),
@@ -329,6 +334,52 @@ export function DesktopShell() {
   }, [closeAllBoards]);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      hydratedUserRef.current = null;
+      openedInvitesRef.current = false;
+      setSessionReady(false);
+      setFrames([]);
+      setFocusOrder([]);
+      return;
+    }
+    if (me === undefined) return;
+    const userId = me?._id;
+    if (!userId) {
+      hydratedUserRef.current = null;
+      setSessionReady(true);
+      return;
+    }
+    if (hydratedUserRef.current === userId) return;
+    let cancelled = false;
+    void loadSession(userId)
+      .then((session) => {
+        if (cancelled) return;
+        setFrames(session?.frames ?? []);
+        setFocusOrder(session?.focusOrder ?? []);
+        hydratedUserRef.current = userId;
+        setSessionReady(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setFrames([]);
+        setFocusOrder([]);
+        hydratedUserRef.current = userId;
+        setSessionReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, me]);
+
+  useEffect(() => {
+    if (!sessionReady || !me?._id) return;
+    const handle = window.setTimeout(() => {
+      void saveSession(me._id, frames, focusOrder);
+    }, 200);
+    return () => window.clearTimeout(handle);
+  }, [sessionReady, me?._id, frames, focusOrder]);
+
+  useEffect(() => {
     if (!workspaces) return;
     const ids = new Set(workspaces.map((workspace) => workspace._id));
     for (const frame of frames) {
@@ -340,11 +391,12 @@ export function DesktopShell() {
   }, [closeBoard, frames, workspaces]);
 
   useEffect(() => {
+    if (!sessionReady) return;
     if (openedInvitesRef.current) return;
     if (!pending || pending.length === 0) return;
     openedInvitesRef.current = true;
     openBoard("invitations");
-  }, [openBoard, pending]);
+  }, [sessionReady, openBoard, pending]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -355,7 +407,7 @@ export function DesktopShell() {
     return <ShutdownScreen onPowerOn={() => window.location.reload()} />;
   }
 
-  if (isLoading) {
+  if (isLoading || (isAuthenticated && (me === undefined || !sessionReady))) {
     return <BootScreen />;
   }
 
