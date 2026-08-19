@@ -24,6 +24,7 @@ A Windows 98-style kanban board. Sign in, open boards like desktop windows, and 
 - **Personal boards** for **All**, **Today**, **This Week**, and **Later**. Drag works between board windows to reschedule them.
 - **Shared workspaces** with owners and members. Create a workspace, invite people by email, accept invites from Inbox, rename or delete as the owner, or leave as a member.
 - **Works** you can add, rename, mark done, search with Find, and delete.
+- **Local cache** in IndexedDB via [Dexie](https://dexie.org). Board lists, workspace icons, and open windows come back on refresh. Convex stays the source of truth; edits still go through the backend.
 - **Email and password auth** through [Convex Auth](https://labs.convex.dev/auth). Log Off signs you out. Shut Down powers off the desktop until you click to start again.
 
 ## Getting started
@@ -87,6 +88,8 @@ These are created by `bunx convex dev`. Do not commit `.env*` files.
 
 Workspace works stay on that workspace. They are not dragged between the personal time boards.
 
+Refresh restores personal boards, workspace windows, Find, Help, and Invitations, including position and minimize state. Log Off, New Work, and delete/leave/rename/invite dialogs do not come back.
+
 ## Project structure
 
 ```text
@@ -97,7 +100,7 @@ src/
     board/             Board and workspace windows
     desktop/           Shell: taskbar, Start menu, dialogs, boot/shutdown
     window/            Window manager, drag, focus, minimize
-  lib/                 Boards, sounds, window ids, work drag
+  lib/                 Boards, sounds, window ids, work drag, Dexie cache (`db.ts`, `persist.ts`)
   styles/98.css        98.css plus desktop chrome
 convex/
   schema.ts            Works, workspaces, members, invites, auth tables
@@ -109,26 +112,33 @@ public/                Fonts, Start icons, sounds, shutdown art
 assets/screenshot.png  Desktop screenshot
 ```
 
-The Next.js app is the desktop. Convex is the realtime backend: queries and mutations stay in sync across open windows and across people in the same workspace.
+The Next.js app is the desktop. Convex is the realtime backend: queries and mutations stay in sync across open windows and across people in the same workspace. Dexie holds a per-browser snapshot so a refresh does not flash empty lists or a blank desktop.
 
 ## Tech stack
 
 - [Next.js](https://nextjs.org) 16 and [React](https://react.dev) 19
 - [Convex](https://www.convex.dev) for the database, functions, and live updates
 - [Convex Auth](https://labs.convex.dev/auth) with the password provider
+- [Dexie](https://dexie.org) for IndexedDB cache and desktop session
+- [OpenNext](https://opennext.js.org/cloudflare) on [Cloudflare Workers](https://developers.cloudflare.com/workers/)
 - [98.css](https://jdan.github.io/98.css/) and [react-old-icons](https://www.npmjs.com/package/react-old-icons)
 - [Tailwind CSS](https://tailwindcss.com) 4
+- [Biome](https://biomejs.dev)
 - [Bun](https://bun.sh)
 
 ## Scripts
 
 ```bash
-bun dev          # Next.js dev server
-bun run build    # Production build
-bun start        # Serve the production build
-bun lint         # Biome
-bun run lint:fix # Biome, apply safe fixes
-bunx convex dev  # Convex backend (keep this running in development)
+bun dev            # Next.js dev server
+bun run build      # Production build
+bun start          # Serve the production build
+bun lint           # Biome
+bun run lint:fix   # Biome, apply safe fixes
+bunx convex dev    # Convex backend (keep this running in development)
+bun preview        # OpenNext Cloudflare preview
+bun run deploy     # OpenNext build + Cloudflare Workers deploy (frontend only)
+bun run upload     # OpenNext build + Cloudflare upload without activating
+bun run cf-typegen # Wrangler types
 ```
 
-Deploy the frontend on [Vercel](https://vercel.com) (this repo includes a `vercel.json` that installs with Bun). Point `NEXT_PUBLIC_CONVEX_URL` and `NEXT_PUBLIC_CONVEX_SITE_URL` at a Convex production deployment, and run `bunx convex deploy` for the backend.
+The frontend ships to [Cloudflare Workers](https://developers.cloudflare.com/workers/) via OpenNext (`wrangler.jsonc`, domain `kanban.akashdesilva.space`). `bun run deploy` does **not** push Convex. Point the Worker's `NEXT_PUBLIC_CONVEX_URL` and `NEXT_PUBLIC_CONVEX_SITE_URL` at a Convex production deployment, and run `bunx convex deploy` for the backend.
