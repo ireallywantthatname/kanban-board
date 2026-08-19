@@ -4,17 +4,17 @@ import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect } from "react";
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
 import type { BoardId } from "@/lib/boards";
 import {
-  db,
   type CachedSession,
   type CachedWork,
   type CachedWorkspace,
+  db,
 } from "@/lib/db";
 import type { WindowFrame, WindowGeom, WindowId } from "@/lib/window-shell";
-import { parseWindowId, type ParsedWindowId } from "@/lib/windows";
+import { type ParsedWindowId, parseWindowId } from "@/lib/windows";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 
 export type WorkRow = FunctionReturnType<typeof api.works.list>[number];
 export type WorkspaceRow = FunctionReturnType<
@@ -320,9 +320,8 @@ export function useCachedWorks(args: WorksArgs) {
     }
     if (workspaceId) {
       const warmed =
-        (await hasSnapshot(
-          workspaceWorksSnapshotKey(userId, workspaceId),
-        )) || (await hasSnapshot(worksAllSnapshotKey(userId)));
+        (await hasSnapshot(workspaceWorksSnapshotKey(userId, workspaceId))) ||
+        (await hasSnapshot(worksAllSnapshotKey(userId)));
       if (!warmed) return undefined;
       const rows = await db.works
         .where("[userId+workspaceId]")

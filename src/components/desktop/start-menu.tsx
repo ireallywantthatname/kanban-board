@@ -11,11 +11,11 @@ import {
   WindowsShutDown,
   WindowsXPLogOff,
 } from "react-old-icons";
-import type { Id } from "../../../convex/_generated/dataModel";
 import { BOARDS } from "@/lib/boards";
 import { cn } from "@/lib/utils";
 import type { WindowId } from "@/lib/window-shell";
 import { workspaceWindowId } from "@/lib/windows";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 type StartMenuProps = {
   open: boolean;
@@ -70,7 +70,10 @@ export function StartMenu({
         >
           <button
             type="button"
-            className={cn("start-menu-item has-submenu", flyout === "programs" && "open")}
+            className={cn(
+              "start-menu-item has-submenu",
+              flyout === "programs" && "open",
+            )}
             role="menuitem"
             aria-haspopup="true"
             aria-expanded={flyout === "programs"}
@@ -83,7 +86,7 @@ export function StartMenu({
             <span className="start-menu-submenu-arrow" aria-hidden="true" />
           </button>
           {flyout === "programs" ? (
-            <ul className="start-menu-submenu" role="menu">
+            <ul className="start-menu-submenu">
               {BOARDS.map((board) => (
                 <li key={board.id}>
                   <button
@@ -124,7 +127,7 @@ export function StartMenu({
             <span className="start-menu-submenu-arrow" aria-hidden="true" />
           </button>
           {flyout === "workspaces" ? (
-            <ul className="start-menu-submenu" role="menu">
+            <ul className="start-menu-submenu">
               {workspaces.map((workspace) => (
                 <li key={workspace._id}>
                   <button
@@ -143,7 +146,7 @@ export function StartMenu({
                 </li>
               ))}
               {workspaces.length > 0 ? (
-                <li className="start-menu-divider" role="separator" />
+                <li className="start-menu-divider" aria-hidden="true" />
               ) : null}
               <li>
                 <button
@@ -213,7 +216,7 @@ export function StartMenu({
             <span className="start-menu-item-label">Help</span>
           </button>
         </li>
-        <li className="start-menu-divider" role="separator" />
+        <li className="start-menu-divider" aria-hidden="true" />
         <li onPointerEnter={() => setFlyout(null)}>
           <button
             type="button"

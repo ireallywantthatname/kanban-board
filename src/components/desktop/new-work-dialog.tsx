@@ -1,15 +1,15 @@
 "use client";
 
 import { useMutation } from "convex/react";
-import { FormEvent, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { Windows95Notepad } from "react-old-icons";
-import { api } from "../../../convex/_generated/api";
 import { AppWindow } from "@/components/window/app-window";
 import { BOARDS, isBoardId } from "@/lib/boards";
 import { useCachedWorkspaces } from "@/lib/persist";
-import type { WindowChrome, WindowId } from "@/lib/windows";
 import { playSound } from "@/lib/sound";
+import type { WindowChrome, WindowId } from "@/lib/windows";
 import { parseWindowId, workspaceWindowId } from "@/lib/windows";
+import { api } from "../../../convex/_generated/api";
 
 type NewWorkDialogProps = WindowChrome & {
   onCreated: (id: WindowId) => void;

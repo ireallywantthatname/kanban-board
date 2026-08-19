@@ -1,18 +1,18 @@
 "use client";
 
 import { Windows95NetworkNeighborhood } from "react-old-icons";
-import type { Id } from "../../../convex/_generated/dataModel";
 import { BoardWindow } from "@/components/board/board-window";
 import { ConfirmDialog } from "@/components/desktop/confirm-dialog";
 import { FindDialog } from "@/components/desktop/find-dialog";
 import { HelpDialog } from "@/components/desktop/help-dialog";
-import { InviteDialog } from "@/components/desktop/invite-dialog";
 import { InvitationsDialog } from "@/components/desktop/invitations-dialog";
+import { InviteDialog } from "@/components/desktop/invite-dialog";
 import { NameWorkspaceDialog } from "@/components/desktop/name-workspace-dialog";
 import { NewWorkDialog } from "@/components/desktop/new-work-dialog";
 import { SessionDialog } from "@/components/desktop/session-dialog";
 import type { WindowChrome, WindowId } from "@/lib/windows";
 import { parseWindowId, windowTitle } from "@/lib/windows";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 export type WorkspaceInfo = {
   _id: Id<"workspaces">;
@@ -58,11 +58,7 @@ export function ManagedWindow({
 
   if (parsed.kind === "board") {
     return (
-      <BoardWindow
-        board={parsed.board}
-        className="h-full w-full"
-        {...chrome}
-      />
+      <BoardWindow board={parsed.board} className="h-full w-full" {...chrome} />
     );
   }
 
@@ -71,9 +67,7 @@ export function ManagedWindow({
       <BoardWindow
         workspaceId={parsed.workspaceId}
         workspaceName={windowTitle(id, workspaces)}
-        onInvite={
-          onInvite ? () => onInvite(parsed.workspaceId) : undefined
-        }
+        onInvite={onInvite ? () => onInvite(parsed.workspaceId) : undefined}
         className="h-full w-full"
         {...chrome}
       />

@@ -1,10 +1,10 @@
 import type { ComponentType } from "react";
 import {
-  Windows2000MyDocuments,
+  type OldIconProps,
   Windows95Notepad,
+  Windows2000MyDocuments,
   WindowsDatetime,
   WindowsVistaCalendar,
-  type OldIconProps,
 } from "react-old-icons";
 
 export type BoardId = "all" | "today" | "this_week" | "later";

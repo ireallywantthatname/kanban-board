@@ -2,13 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Windows95SavedSearch } from "react-old-icons";
-import type { Id } from "../../../convex/_generated/dataModel";
 import { AppWindow } from "@/components/window/app-window";
 import { boardLabel, isBoardId } from "@/lib/boards";
 import { useCachedWorksAll } from "@/lib/persist";
 import { cn } from "@/lib/utils";
 import type { WindowChrome, WindowId } from "@/lib/windows";
 import { workspaceWindowId } from "@/lib/windows";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 type FindWork = {
   workspaceId?: Id<"workspaces">;

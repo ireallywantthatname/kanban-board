@@ -1,6 +1,6 @@
 import type { PointerEvent } from "react";
+import { type BoardId, boardLabel, isBoardId } from "@/lib/boards";
 import type { Id } from "../../convex/_generated/dataModel";
-import { boardLabel, isBoardId, type BoardId } from "@/lib/boards";
 
 export type ToolWindowId =
   | "find"

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { Windows95NetworkNeighborhood } from "react-old-icons";
 import { AppWindow } from "@/components/window/app-window";
 import { playSound } from "@/lib/sound";
@@ -48,7 +48,9 @@ export function NameWorkspaceDialog({
       await onSubmit(value);
     } catch (err) {
       playSound("SystemExclamation");
-      setError(err instanceof Error ? err.message : "Could not save workspace.");
+      setError(
+        err instanceof Error ? err.message : "Could not save workspace.",
+      );
       setBusy(false);
     }
   }

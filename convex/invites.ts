@@ -1,10 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import {
-  normalizeEmail,
-  requireMembership,
-  requireUserId,
-} from "./lib";
+import { normalizeEmail, requireMembership, requireUserId } from "./lib";
 
 const pendingInviteReturn = v.object({
   _id: v.id("workspaceInvites"),
@@ -45,9 +41,7 @@ export const invite = mutation({
       const member = await ctx.db
         .query("workspaceMembers")
         .withIndex("by_workspaceId_and_userId", (q) =>
-          q
-            .eq("workspaceId", args.workspaceId)
-            .eq("userId", existingUser._id),
+          q.eq("workspaceId", args.workspaceId).eq("userId", existingUser._id),
         )
         .unique();
       if (member) {
@@ -114,9 +108,7 @@ export const listForWorkspace = query({
     await requireMembership(ctx, args.workspaceId);
     const invites = await ctx.db
       .query("workspaceInvites")
-      .withIndex("by_workspaceId", (q) =>
-        q.eq("workspaceId", args.workspaceId),
-      )
+      .withIndex("by_workspaceId", (q) => q.eq("workspaceId", args.workspaceId))
       .take(100);
     return invites.map((invite) => ({
       _id: invite._id,

@@ -2,21 +2,21 @@
 
 import { useMutation, useQuery } from "convex/react";
 import {
-  FormEvent,
+  type FormEvent,
+  type HTMLAttributes,
+  type PointerEvent as ReactPointerEvent,
   useCallback,
   useRef,
   useState,
-  type PointerEvent as ReactPointerEvent,
-  type HTMLAttributes,
 } from "react";
-import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
+import { Windows95NetworkNeighborhood } from "react-old-icons";
 import { AppWindow } from "@/components/window/app-window";
-import { BOARDS, boardLabel, type BoardId } from "@/lib/boards";
+import { BOARDS, type BoardId, boardLabel } from "@/lib/boards";
 import { useCachedWorks } from "@/lib/persist";
 import { cn } from "@/lib/utils";
 import { isWorkDragging, startWorkDrag } from "@/lib/work-drag";
-import { Windows95NetworkNeighborhood } from "react-old-icons";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 const DRAG_THRESHOLD = 5;
 
@@ -68,7 +68,9 @@ export function BoardWindow({
   const [selectedId, setSelectedId] = useState<Id<"works"> | null>(null);
   const [editingId, setEditingId] = useState<Id<"works"> | null>(null);
   const [draft, setDraft] = useState("");
-  const BoardIcon = board ? BOARDS.find((b) => b.id === board)?.Icon : undefined;
+  const BoardIcon = board
+    ? BOARDS.find((b) => b.id === board)?.Icon
+    : undefined;
   const TitleIcon = isWorkspace ? Windows95NetworkNeighborhood : BoardIcon;
   const count = works?.length;
   const memberCount = members?.length;
@@ -76,10 +78,7 @@ export function BoardWindow({
   const editRef = useRef<Id<"works"> | null>(null);
 
   const onDrop = useCallback(
-    async (
-      payload: { workId: Id<"works"> },
-      toBoard: BoardId,
-    ) => {
+    async (payload: { workId: Id<"works"> }, toBoard: BoardId) => {
       try {
         await move({ id: payload.workId, board: toBoard });
       } catch {
@@ -93,7 +92,8 @@ export function BoardWindow({
     e: ReactPointerEvent<HTMLLIElement>,
     work: { _id: Id<"works">; title: string },
   ) {
-    if (isWorkspace || !board) return;
+    if (isWorkspace || board === undefined) return;
+    const fromBoard = board;
     if (e.button !== 0) return;
     if ((e.target as HTMLElement).closest("button, input, label")) return;
     if (editingId === work._id) return;
@@ -111,7 +111,7 @@ export function BoardWindow({
       startWorkDrag(
         {
           workId: work._id,
-          fromBoard: board!,
+          fromBoard,
           title: work.title,
           sourceEl,
         },
@@ -198,7 +198,13 @@ export function BoardWindow({
 
   return (
     <AppWindow
-      title={isWorkspace ? (workspaceName ?? "Workspace") : board ? boardLabel(board) : "Board"}
+      title={
+        isWorkspace
+          ? (workspaceName ?? "Workspace")
+          : board
+            ? boardLabel(board)
+            : "Board"
+      }
       onClose={onClose}
       onMinimize={onMinimize}
       onMaximize={onMaximize}

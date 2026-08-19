@@ -1,20 +1,25 @@
 "use client";
 
 import {
+  type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type PointerEvent as ReactPointerEvent,
 } from "react";
-import type { Id } from "../../../convex/_generated/dataModel";
-import { defaultWindowSize } from "@/lib/windows";
-import type { ResizeEdge, WindowFrame, WindowGeom, WindowId } from "@/lib/window-shell";
 import {
   ManagedWindow,
   type WorkspaceInfo,
 } from "@/components/window/managed-window";
+import type {
+  ResizeEdge,
+  WindowFrame,
+  WindowGeom,
+  WindowId,
+} from "@/lib/window-shell";
+import { defaultWindowSize } from "@/lib/windows";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 const MIN_W = 280;
 const MIN_H = 200;
@@ -170,7 +175,9 @@ export function WindowManager({
 }: WindowManagerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
-  const [localGeom, setLocalGeom] = useState<Partial<Record<WindowId, WindowGeom>>>({});
+  const [localGeom, setLocalGeom] = useState<
+    Partial<Record<WindowId, WindowGeom>>
+  >({});
 
   const measure = useCallback(() => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -205,7 +212,13 @@ export function WindowManager({
 
       let next: WindowGeom;
       if (drag.kind === "move") {
-        const pos = clampMove(drag.orig.x + dx, drag.orig.y + dy, drag.orig.w, cw, ch);
+        const pos = clampMove(
+          drag.orig.x + dx,
+          drag.orig.y + dy,
+          drag.orig.w,
+          cw,
+          ch,
+        );
         next = { x: pos.x, y: pos.y, w: drag.orig.w, h: drag.orig.h };
       } else {
         next = applyResize(drag.edge ?? "se", drag.orig, dx, dy, cw, ch);
@@ -281,7 +294,11 @@ export function WindowManager({
   );
 
   const startResize = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>, board: WindowId, edge: ResizeEdge) => {
+    (
+      e: ReactPointerEvent<HTMLDivElement>,
+      board: WindowId,
+      edge: ResizeEdge,
+    ) => {
       e.stopPropagation();
       e.preventDefault();
       const frame = frames.find((f) => f.id === board);

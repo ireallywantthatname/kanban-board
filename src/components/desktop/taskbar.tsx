@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
+import { useState } from "react";
 import {
   Windows95Help,
   Windows95Inbox,
@@ -12,12 +12,12 @@ import {
   WindowsXPLogOff,
   WindowsXPUsers,
 } from "react-old-icons";
-import type { Id } from "../../../convex/_generated/dataModel";
 import { BOARDS } from "@/lib/boards";
-import type { WindowFrame, WindowId } from "@/lib/window-shell";
 import { playSound } from "@/lib/sound";
-import { parseWindowId, windowTitle } from "@/lib/windows";
 import { cn } from "@/lib/utils";
+import type { WindowFrame, WindowId } from "@/lib/window-shell";
+import { parseWindowId, windowTitle } from "@/lib/windows";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { Clock } from "./clock";
 import { StartMenu } from "./start-menu";
 
@@ -102,7 +102,11 @@ export function Taskbar({
         />
       </div>
       <div className="taskbar-divider" />
-      <div className="taskbar-apps" aria-label="Running applications">
+      <div
+        className="taskbar-apps"
+        role="toolbar"
+        aria-label="Running applications"
+      >
         {frames.map((frame) => {
           const selected = activeId === frame.id && !frame.minimized;
           return (

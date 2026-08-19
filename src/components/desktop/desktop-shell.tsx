@@ -3,12 +3,7 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Windows95Inbox,
-  Windows95NetworkNeighborhood,
-} from "react-old-icons";
-import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
+import { Windows95Inbox, Windows95NetworkNeighborhood } from "react-old-icons";
 import { AuthWindow } from "@/components/auth/auth-window";
 import { BootScreen } from "@/components/desktop/boot-screen";
 import { ContextMenu } from "@/components/desktop/context-menu";
@@ -25,13 +20,9 @@ import {
   windowTitlebarEl,
 } from "@/lib/animate-titlebar";
 import { BOARDS, type BoardId } from "@/lib/boards";
-import {
-  loadSession,
-  saveSession,
-  useCachedWorkspaces,
-} from "@/lib/persist";
-import type { WindowFrame, WindowGeom, WindowId } from "@/lib/window-shell";
+import { loadSession, saveSession, useCachedWorkspaces } from "@/lib/persist";
 import { playSound } from "@/lib/sound";
+import type { WindowFrame, WindowGeom, WindowId } from "@/lib/window-shell";
 import {
   boundWorkspaceId,
   deleteWorkspaceWindowId,
@@ -42,6 +33,8 @@ import {
   windowTitle,
   workspaceWindowId,
 } from "@/lib/windows";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 type IconId = WindowId | "inbox";
 
@@ -85,7 +78,9 @@ export function DesktopShell() {
   );
 
   const activeId =
-    focusOrder.filter((id) => frames.some((f) => f.id === id && !f.minimized)).at(-1) ??
+    focusOrder
+      .filter((id) => frames.some((f) => f.id === id && !f.minimized))
+      .at(-1) ??
     frames.filter((f) => !f.minimized).at(-1)?.id ??
     null;
 
@@ -129,7 +124,7 @@ export function DesktopShell() {
     async (board: WindowId) => {
       if (animatingRef.current.has(board)) return;
       const frame = frames.find((f) => f.id === board);
-      if (!frame || !frame.minimized) {
+      if (!frame?.minimized) {
         focusBoard(board);
         return;
       }
@@ -240,9 +235,7 @@ export function DesktopShell() {
 
   const onGeomChange = useCallback((board: WindowId, geom: WindowGeom) => {
     setFrames((prev) =>
-      prev.map((f) =>
-        f.id === board ? { ...f, geom, maximized: false } : f,
-      ),
+      prev.map((f) => (f.id === board ? { ...f, geom, maximized: false } : f)),
     );
   }, []);
 
@@ -446,22 +439,19 @@ export function DesktopShell() {
             {
               id: "rename",
               label: "Rename…",
-              onSelect: () =>
-                openBoard(renameWorkspaceWindowId(workspaceId)),
+              onSelect: () => openBoard(renameWorkspaceWindowId(workspaceId)),
             },
             {
               id: "delete",
               label: "Delete",
-              onSelect: () =>
-                openBoard(deleteWorkspaceWindowId(workspaceId)),
+              onSelect: () => openBoard(deleteWorkspaceWindowId(workspaceId)),
             },
           ]
         : [
             {
               id: "leave",
               label: "Leave",
-              onSelect: () =>
-                openBoard(leaveWorkspaceWindowId(workspaceId)),
+              onSelect: () => openBoard(leaveWorkspaceWindowId(workspaceId)),
             },
           ]),
     ];

@@ -42,8 +42,7 @@ export class KanbanDB extends Dexie {
   constructor() {
     super("kanban");
     this.version(1).stores({
-      works:
-        "[userId+workId], userId, [userId+board], [userId+workspaceId]",
+      works: "[userId+workId], userId, [userId+board], [userId+workspaceId]",
       workspaces: "[userId+workspaceId], userId",
       sessions: "userId",
       snapshots: "key",
@@ -51,5 +50,4 @@ export class KanbanDB extends Dexie {
   }
 }
 
-export const db =
-  typeof indexedDB === "undefined" ? null : new KanbanDB();
+export const db = typeof indexedDB === "undefined" ? null : new KanbanDB();

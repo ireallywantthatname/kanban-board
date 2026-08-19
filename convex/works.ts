@@ -1,8 +1,8 @@
 import { v } from "convex/values";
+import type { Doc } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
-import { Doc } from "./_generated/dataModel";
-import { boardValidator } from "./schema";
 import { requireMembership, requireUserId } from "./lib";
+import { boardValidator } from "./schema";
 
 const workReturn = v.object({
   _id: v.id("works"),
@@ -15,10 +15,7 @@ const workReturn = v.object({
   done: v.optional(v.boolean()),
 });
 
-function withWorkspaceName(
-  work: Doc<"works">,
-  workspaceName?: string,
-) {
+function withWorkspaceName(work: Doc<"works">, workspaceName?: string) {
   return {
     _id: work._id,
     _creationTime: work._creationTime,

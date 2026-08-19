@@ -1,5 +1,5 @@
+import { type BoardId, isBoardId } from "@/lib/boards";
 import type { Id } from "../../convex/_generated/dataModel";
-import { isBoardId, type BoardId } from "@/lib/boards";
 
 export type WorkDragPayload = {
   workId: Id<"works">;
@@ -30,7 +30,10 @@ type Session = {
 
 let session: Session | null = null;
 
-function findBoardDropTarget(x: number, y: number): {
+function findBoardDropTarget(
+  x: number,
+  y: number,
+): {
   el: HTMLElement;
   board: BoardId;
 } | null {
@@ -62,7 +65,13 @@ function setDropTarget(next: HTMLElement | null, board: BoardId | null) {
   }
 }
 
-function createGhost(payload: WorkDragPayload, x: number, y: number, offsetX: number, offsetY: number) {
+function createGhost(
+  payload: WorkDragPayload,
+  x: number,
+  y: number,
+  offsetX: number,
+  offsetY: number,
+) {
   const ghost = document.createElement("div");
   ghost.className = GHOST_CLASS;
   ghost.textContent = payload.title;
@@ -155,7 +164,5 @@ export function startWorkDrag(
   window.addEventListener("pointerup", onPointerUp);
   window.addEventListener("pointercancel", onPointerUp);
 
-  onPointerMove(
-    new PointerEvent("pointermove", { clientX, clientY }),
-  );
+  onPointerMove(new PointerEvent("pointermove", { clientX, clientY }));
 }

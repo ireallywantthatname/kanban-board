@@ -1,13 +1,13 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { FormEvent, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { WindowsXPUsers } from "react-old-icons";
-import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
 import { AppWindow } from "@/components/window/app-window";
 import { playSound } from "@/lib/sound";
 import type { WindowChrome } from "@/lib/windows";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 type InviteDialogProps = WindowChrome & {
   workspaceId: Id<"workspaces">;

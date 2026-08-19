@@ -3,11 +3,11 @@
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { Windows95Inbox } from "react-old-icons";
-import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
 import { AppWindow } from "@/components/window/app-window";
 import { playSound } from "@/lib/sound";
 import type { WindowChrome } from "@/lib/windows";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 type InvitationsDialogProps = WindowChrome & {
   onAccepted: (workspaceId: Id<"workspaces">) => void;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuthActions } from "@convex-dev/auth/react";
-import { FormEvent, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { Windows95Password, WindowsXPUsers } from "react-old-icons";
 import { AppWindow } from "@/components/window/app-window";
 import { playSound } from "@/lib/sound";

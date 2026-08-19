@@ -1,14 +1,14 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import {
   internalMutation,
+  type MutationCtx,
   mutation,
   query,
-  type MutationCtx,
 } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
-import { memberRoleValidator } from "./schema";
 import { requireMembership, requireUserId, requireWorkspaceOwner } from "./lib";
+import { memberRoleValidator } from "./schema";
 
 const PURGE_BATCH = 80;
 
@@ -132,9 +132,7 @@ export const listMembers = query({
     await requireMembership(ctx, args.workspaceId);
     const members = await ctx.db
       .query("workspaceMembers")
-      .withIndex("by_workspaceId", (q) =>
-        q.eq("workspaceId", args.workspaceId),
-      )
+      .withIndex("by_workspaceId", (q) => q.eq("workspaceId", args.workspaceId))
       .take(100);
     const result = [];
     for (const member of members) {

@@ -38,7 +38,9 @@ export function HelpDialog({
           <li>Start → Invitations… opens invites sent to your email.</li>
           <li>Use Start → New Work… or Find… to create or search works.</li>
           <li>Log Off signs out of your account.</li>
-          <li>Shut Down turns off the desktop. Click the screen to start again.</li>
+          <li>
+            Shut Down turns off the desktop. Click the screen to start again.
+          </li>
         </ul>
       </div>
       <div className="shell-dialog-actions">

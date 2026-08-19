@@ -1,6 +1,6 @@
 "use client";
 
-import type { PointerEvent, ReactNode, HTMLAttributes } from "react";
+import type { HTMLAttributes, PointerEvent, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 type AppWindowProps = HTMLAttributes<HTMLDivElement> & {
@@ -34,7 +34,11 @@ export function AppWindow({
   ...props
 }: AppWindowProps) {
   return (
-    <div className={cn("window app-window", className)} style={style} {...props}>
+    <div
+      className={cn("window app-window", className)}
+      style={style}
+      {...props}
+    >
       <div
         className={cn("title-bar", !active && "inactive")}
         onPointerDown={onTitlePointerDown}

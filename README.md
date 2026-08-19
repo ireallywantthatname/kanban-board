@@ -126,7 +126,8 @@ The Next.js app is the desktop. Convex is the realtime backend: queries and muta
 bun dev          # Next.js dev server
 bun run build    # Production build
 bun start        # Serve the production build
-bun lint         # ESLint
+bun lint         # Biome
+bun run lint:fix # Biome, apply safe fixes
 bunx convex dev  # Convex backend (keep this running in development)
 ```
 

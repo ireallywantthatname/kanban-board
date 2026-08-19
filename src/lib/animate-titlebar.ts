@@ -109,9 +109,7 @@ export function animateTitlebar(
 }
 
 export function windowTitlebarEl(boardId: string): HTMLElement | null {
-  return document.querySelector(
-    `[data-window-id="${boardId}"] .title-bar`,
-  );
+  return document.querySelector(`[data-window-id="${boardId}"] .title-bar`);
 }
 
 export function taskbarButtonEl(boardId: string): HTMLElement | null {
