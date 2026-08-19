@@ -1,11 +1,12 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { FormEvent, useState } from "react";
 import { Windows95Notepad } from "react-old-icons";
 import { api } from "../../../convex/_generated/api";
 import { AppWindow } from "@/components/window/app-window";
 import { BOARDS, isBoardId } from "@/lib/boards";
+import { useCachedWorkspaces } from "@/lib/persist";
 import type { WindowChrome, WindowId } from "@/lib/windows";
 import { playSound } from "@/lib/sound";
 import { parseWindowId, workspaceWindowId } from "@/lib/windows";
@@ -25,7 +26,7 @@ export function NewWorkDialog({
   onTitleDoubleClick,
 }: NewWorkDialogProps) {
   const create = useMutation(api.works.create);
-  const workspaces = useQuery(api.workspaces.listMine);
+  const workspaces = useCachedWorkspaces();
   const [title, setTitle] = useState("");
   const [destination, setDestination] = useState<WindowId>("today");
   const [busy, setBusy] = useState(false);

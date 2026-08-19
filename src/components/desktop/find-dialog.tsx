@@ -1,12 +1,11 @@
 "use client";
 
-import { useQuery } from "convex/react";
 import { useEffect, useMemo, useState } from "react";
 import { Windows95SavedSearch } from "react-old-icons";
-import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { AppWindow } from "@/components/window/app-window";
 import { boardLabel, isBoardId } from "@/lib/boards";
+import { useCachedWorksAll } from "@/lib/persist";
 import { cn } from "@/lib/utils";
 import type { WindowChrome, WindowId } from "@/lib/windows";
 import { workspaceWindowId } from "@/lib/windows";
@@ -36,7 +35,7 @@ export function FindDialog({
   onTitlePointerDown,
   onTitleDoubleClick,
 }: FindDialogProps) {
-  const works = useQuery(api.works.listAll);
+  const works = useCachedWorksAll();
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<Id<"works"> | null>(null);
 

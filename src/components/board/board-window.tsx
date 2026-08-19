@@ -13,6 +13,7 @@ import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { AppWindow } from "@/components/window/app-window";
 import { BOARDS, boardLabel, type BoardId } from "@/lib/boards";
+import { useCachedWorks } from "@/lib/persist";
 import { cn } from "@/lib/utils";
 import { isWorkDragging, startWorkDrag } from "@/lib/work-drag";
 import { Windows95NetworkNeighborhood } from "react-old-icons";
@@ -50,8 +51,7 @@ export function BoardWindow({
   ...props
 }: BoardWindowProps) {
   const isWorkspace = workspaceId !== undefined;
-  const works = useQuery(
-    api.works.list,
+  const works = useCachedWorks(
     isWorkspace ? { workspaceId } : board ? { board } : "skip",
   );
   const members = useQuery(
