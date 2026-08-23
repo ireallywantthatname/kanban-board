@@ -4,6 +4,8 @@ import { mutation, query } from "./_generated/server";
 import { requireMembership, requireUserId } from "./lib";
 import { boardValidator } from "./schema";
 
+const PERSONAL_BOARDS = ["all", "today", "this_week", "later"] as const;
+
 const workReturn = v.object({
   _id: v.id("works"),
   _creationTime: v.number(),
@@ -71,6 +73,21 @@ export const list = query({
       throw new Error("Not found");
     }
     const userId = await requireUserId(ctx);
+    if (args.board === "all") {
+      const items: Doc<"works">[] = [];
+      for (const board of PERSONAL_BOARDS) {
+        const works = await ctx.db
+          .query("works")
+          .withIndex("by_userId_and_board", (q) =>
+            q.eq("userId", userId).eq("board", board),
+          )
+          .order("desc")
+          .take(200);
+        items.push(...works);
+      }
+      items.sort((a, b) => b._creationTime - a._creationTime);
+      return items.map((work) => withWorkspaceName(work));
+    }
     const works = await ctx.db
       .query("works")
       .withIndex("by_userId_and_board", (q) =>

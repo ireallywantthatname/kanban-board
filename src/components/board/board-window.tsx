@@ -90,10 +90,10 @@ export function BoardWindow({
 
   function onRowPointerDown(
     e: ReactPointerEvent<HTMLLIElement>,
-    work: { _id: Id<"works">; title: string },
+    work: { _id: Id<"works">; title: string; board?: BoardId },
   ) {
     if (isWorkspace || board === undefined) return;
-    const fromBoard = board;
+    const fromBoard = work.board ?? board;
     if (e.button !== 0) return;
     if ((e.target as HTMLElement).closest("button, input, label")) return;
     if (editingId === work._id) return;
@@ -303,6 +303,11 @@ export function BoardWindow({
                     {work.title}
                   </span>
                 )}
+                {board === "all" && work.board ? (
+                  <span className="work-row-board">
+                    {boardLabel(work.board)}
+                  </span>
+                ) : null}
                 <button
                   type="button"
                   className="min-h-0 min-w-0 h-6 px-2"

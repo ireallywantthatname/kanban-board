@@ -21,7 +21,7 @@ A Windows 98-style kanban board. Sign in, open boards like desktop windows, and 
 ## Features
 
 - **Windows 98 desktop** built with [98.css](https://jdan.github.io/98.css/) and [react-old-icons](https://www.npmjs.com/package/react-old-icons): boot screen, desktop icons, overlapping windows, Start menu, taskbar, minimize/maximize animations, and system sounds.
-- **Personal boards** for **All**, **Today**, **This Week**, and **Later**. Drag works between board windows to reschedule them.
+- **Personal boards** for **All**, **Today**, **This Week**, and **Later**. All lists every personal work. Add on All to leave a work unscheduled, or add on a time board and it shows up in All as well. Drag works between board windows to reschedule them.
 - **Shared workspaces** with owners and members. Create a workspace, invite people by email, accept invites from Inbox, rename or delete as the owner, or leave as a member.
 - **Works** you can add, rename, mark done, search with Find, and delete.
 - **Local cache** in IndexedDB via [Dexie](https://dexie.org). Board lists, workspace icons, and open windows come back on refresh. Convex stays the source of truth; edits still go through the backend.
@@ -78,8 +78,8 @@ These are created by `bunx convex dev`. Do not commit `.env*` files.
 | Action | How |
 | --- | --- |
 | Open a board or workspace | Double-click its desktop icon, or use **Start → Programs** / **Start → Workspaces** |
-| Move a personal work | Drag it from one board window onto another (**Today**, **This Week**, **Later**, **All**) |
-| Add a work | Type in a board window and click **Add**, or use **Start → New Work...** |
+| Move a personal work | Drag it from one board window onto another (**Today**, **This Week**, **Later**, **All**). Dropping onto All unschedules it. |
+| Add a work | Type in a board window and click **Add**, or use **Start → New Work...**. Works added on a time board also appear in **All**. |
 | Search | **Start → Find...**, then open a match to jump to its board |
 | Share a workspace | Right-click the workspace icon and choose **Invite...**, or click **Invite...** in the workspace window |
 | Review invites | **Start → Invitations...**, or the **Inbox** icon when you have pending invites |

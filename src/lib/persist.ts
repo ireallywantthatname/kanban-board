@@ -4,7 +4,7 @@ import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect } from "react";
-import type { BoardId } from "@/lib/boards";
+import { BOARDS, type BoardId } from "@/lib/boards";
 import {
   type CachedSession,
   type CachedWork,
@@ -121,6 +121,25 @@ export async function replaceBoardWorks(
   if (!store) return;
   const rows = works.map((work) => toCachedWork(userId, work));
   await store.transaction("rw", store.works, store.snapshots, async () => {
+    if (board === "all") {
+      const existing = await store.works
+        .where("userId")
+        .equals(userId)
+        .toArray();
+      const personalKeys = existing
+        .filter((work) => work.workspaceId === undefined)
+        .map((work) => [work.userId, work.workId] as [string, string]);
+      if (personalKeys.length > 0) {
+        await store.works.bulkDelete(personalKeys);
+      }
+      if (rows.length > 0) {
+        await store.works.bulkPut(rows);
+      }
+      for (const def of BOARDS) {
+        await store.snapshots.put({ key: boardSnapshotKey(userId, def.id) });
+      }
+      return;
+    }
     await store.works.where("[userId+board]").equals([userId, board]).delete();
     if (rows.length > 0) {
       await store.works.bulkPut(rows);
@@ -312,6 +331,10 @@ export function useCachedWorks(args: WorksArgs) {
         (await hasSnapshot(boardSnapshotKey(userId, board))) ||
         (await hasSnapshot(worksAllSnapshotKey(userId)));
       if (!warmed) return undefined;
+      if (board === "all") {
+        const rows = await db.works.where("userId").equals(userId).toArray();
+        return sortWorks(rows.filter((work) => work.workspaceId === undefined));
+      }
       const rows = await db.works
         .where("[userId+board]")
         .equals([userId, board])

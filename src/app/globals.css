@@ -148,6 +148,12 @@ ul.tree-view {
   opacity: 0.4;
 }
 
+.work-row-board {
+  flex-shrink: 0;
+  opacity: 0.85;
+  font-size: 11px;
+}
+
 .work-drag-ghost {
   position: fixed;
   pointer-events: none;
