@@ -2,6 +2,7 @@
 
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { useQueryStates } from "nuqs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Windows95Inbox, Windows95NetworkNeighborhood } from "react-old-icons";
 import { AuthWindow } from "@/components/auth/auth-window";
@@ -22,12 +23,15 @@ import {
 import { BOARDS, type BoardId } from "@/lib/boards";
 import { loadSession, saveSession, useCachedWorkspaces } from "@/lib/persist";
 import { playSound } from "@/lib/sound";
+import { desktopSearchParams } from "@/lib/url-state";
 import type { WindowFrame, WindowGeom, WindowId } from "@/lib/window-shell";
 import {
   boundWorkspaceId,
   deleteWorkspaceWindowId,
   inviteWindowId,
+  isPersistableWindowId,
   leaveWorkspaceWindowId,
+  type PersistableWindowId,
   parseWindowId,
   renameWorkspaceWindowId,
   windowTitle,
@@ -45,6 +49,32 @@ type MenuState = {
     | { kind: "board"; id: BoardId }
     | { kind: "workspace"; id: Id<"workspaces"> };
 } | null;
+
+function moveToEnd<T>(ids: T[], id: T): T[] {
+  return [...ids.filter((item) => item !== id), id];
+}
+
+function defaultFrame(id: WindowId): WindowFrame {
+  return {
+    id,
+    minimized: false,
+    maximized: false,
+    geom: null,
+    restoreGeom: null,
+  };
+}
+
+function sameIdList(a: WindowId[], b: WindowId[]) {
+  return a.length === b.length && a.every((id, index) => id === b[index]);
+}
+
+function withFind(
+  ids: PersistableWindowId[],
+  query: string,
+): PersistableWindowId[] {
+  if (query === "" || ids.includes("find")) return ids;
+  return [...ids, "find"];
+}
 
 export function DesktopShell() {
   const { isLoading, isAuthenticated } = useConvexAuth();
@@ -68,9 +98,17 @@ export function DesktopShell() {
     () => new Set(),
   );
   const [sessionReady, setSessionReady] = useState(false);
+  const [{ open, focus, q }, setDesktop] = useQueryStates(desktopSearchParams, {
+    history: "push",
+    shallow: true,
+  });
   const animatingRef = useRef<Set<WindowId>>(new Set());
   const openedInvitesRef = useRef(false);
   const hydratedUserRef = useRef<string | null>(null);
+  const skipInviteAutoOpenRef = useRef(false);
+  const chromeRef = useRef(new Map<WindowId, WindowFrame>());
+  const urlStateRef = useRef({ open, focus, q });
+  urlStateRef.current = { open, focus, q };
   const workspaceList = workspaces ?? [];
   const titleFor = useCallback(
     (id: WindowId) => windowTitle(id, workspaceList),
@@ -90,9 +128,25 @@ export function DesktopShell() {
     );
   }, []);
 
-  const focusBoard = useCallback((board: WindowId) => {
-    setFocusOrder((prev) => [...prev.filter((b) => b !== board), board]);
-  }, []);
+  const focusBoard = useCallback(
+    (board: WindowId) => {
+      if (isPersistableWindowId(board)) {
+        const currentOpen = open ?? [];
+        const alreadyFocused = focus === board && currentOpen.at(-1) === board;
+        if (!alreadyFocused) {
+          const nextOpen = currentOpen.includes(board)
+            ? currentOpen
+            : [...currentOpen, board];
+          void setDesktop({
+            open: moveToEnd(nextOpen, board),
+            focus: board,
+          });
+        }
+      }
+      setFocusOrder((prev) => [...prev.filter((b) => b !== board), board]);
+    },
+    [focus, open, setDesktop],
+  );
 
   const minimizeBoard = useCallback(
     async (board: WindowId) => {
@@ -182,56 +236,73 @@ export function DesktopShell() {
       ) {
         playSound("Default");
       }
-      setFrames((prev) => [
-        ...prev,
-        {
-          id: board,
-          minimized: false,
-          maximized: false,
-          geom: null,
-          restoreGeom: null,
-        },
-      ]);
+      if (isPersistableWindowId(board)) {
+        const nextOpen = [...(open ?? []).filter((id) => id !== board), board];
+        void setDesktop({
+          open: nextOpen,
+          focus: board,
+        });
+      }
+      setFrames((prev) => [...prev, defaultFrame(board)]);
       setFocusOrder((prev) => [...prev.filter((b) => b !== board), board]);
       setSelectedIcon(board);
     },
-    [focusBoard, frames, restoreBoard],
+    [focusBoard, frames, open, restoreBoard, setDesktop],
   );
 
-  const closeBoard = useCallback((board: WindowId) => {
-    animatingRef.current.delete(board);
-    setRestoringIds((prev) => {
-      if (!prev.has(board)) return prev;
-      const next = new Set(prev);
-      next.delete(board);
-      return next;
-    });
-    setFrames((prev) => prev.filter((f) => f.id !== board));
-    setFocusOrder((prev) => prev.filter((b) => b !== board));
-  }, []);
+  const closeBoard = useCallback(
+    (board: WindowId) => {
+      animatingRef.current.delete(board);
+      setRestoringIds((prev) => {
+        if (!prev.has(board)) return prev;
+        const next = new Set(prev);
+        next.delete(board);
+        return next;
+      });
+      setFrames((prev) => prev.filter((f) => f.id !== board));
+      setFocusOrder((prev) => prev.filter((b) => b !== board));
+      if (!isPersistableWindowId(board)) return;
+      const nextOpen = (open ?? []).filter((id) => id !== board);
+      const nextFocus =
+        focus === board
+          ? (nextOpen.at(-1) ?? null)
+          : focus && nextOpen.includes(focus)
+            ? focus
+            : (nextOpen.at(-1) ?? null);
+      void setDesktop(
+        board === "find"
+          ? { open: nextOpen, focus: nextFocus, q: null }
+          : { open: nextOpen, focus: nextFocus },
+      );
+    },
+    [focus, open, setDesktop],
+  );
 
-  const toggleMaximize = useCallback((board: WindowId) => {
-    playSound("Maximize");
-    setFrames((prev) =>
-      prev.map((f) => {
-        if (f.id !== board) return f;
-        if (f.maximized) {
+  const toggleMaximize = useCallback(
+    (board: WindowId) => {
+      playSound("Maximize");
+      setFrames((prev) =>
+        prev.map((f) => {
+          if (f.id !== board) return f;
+          if (f.maximized) {
+            return {
+              ...f,
+              maximized: false,
+              geom: f.restoreGeom ?? f.geom,
+              restoreGeom: null,
+            };
+          }
           return {
             ...f,
-            maximized: false,
-            geom: f.restoreGeom ?? f.geom,
-            restoreGeom: null,
+            maximized: true,
+            restoreGeom: f.geom,
           };
-        }
-        return {
-          ...f,
-          maximized: true,
-          restoreGeom: f.geom,
-        };
-      }),
-    );
-    setFocusOrder((prev) => [...prev.filter((b) => b !== board), board]);
-  }, []);
+        }),
+      );
+      focusBoard(board);
+    },
+    [focusBoard],
+  );
 
   const onGeomChange = useCallback((board: WindowId, geom: WindowGeom) => {
     setFrames((prev) =>
@@ -261,7 +332,8 @@ export function DesktopShell() {
     setRestoringIds(new Set());
     setFrames([]);
     setFocusOrder([]);
-  }, []);
+    void setDesktop({ open: [], focus: null, q: null }, { history: "replace" });
+  }, [setDesktop]);
 
   const handleCreateWorkspace = useCallback(
     async (name: string) => {
@@ -330,6 +402,8 @@ export function DesktopShell() {
     if (!isAuthenticated) {
       hydratedUserRef.current = null;
       openedInvitesRef.current = false;
+      skipInviteAutoOpenRef.current = false;
+      chromeRef.current.clear();
       setSessionReady(false);
       setFrames([]);
       setFocusOrder([]);
@@ -344,25 +418,159 @@ export function DesktopShell() {
     }
     if (hydratedUserRef.current === userId) return;
     let cancelled = false;
+    const landing = urlStateRef.current;
+    skipInviteAutoOpenRef.current = landing.open !== null;
     void loadSession(userId)
       .then((session) => {
         if (cancelled) return;
-        setFrames(session?.frames ?? []);
-        setFocusOrder(session?.focusOrder ?? []);
+        const sessionFrames = session?.frames ?? [];
+        const sessionFocus = session?.focusOrder ?? [];
+        chromeRef.current.clear();
+        for (const frame of sessionFrames) {
+          chromeRef.current.set(frame.id, frame);
+        }
+        const query = landing.q.trim();
+        if (landing.open !== null) {
+          const ids = withFind(landing.open, query);
+          const byId = new Map(
+            sessionFrames.map((frame) => [frame.id, frame] as const),
+          );
+          const nextFrames = ids.map(
+            (id) =>
+              byId.get(id) ?? chromeRef.current.get(id) ?? defaultFrame(id),
+          );
+          const nextFocus =
+            landing.focus && ids.includes(landing.focus)
+              ? landing.focus
+              : (sessionFocus
+                  .filter(isPersistableWindowId)
+                  .filter((id) => ids.includes(id))
+                  .at(-1) ??
+                ids.at(-1) ??
+                null);
+          setFrames(nextFrames);
+          setFocusOrder(nextFocus ? moveToEnd(ids, nextFocus) : ids);
+          if (ids !== landing.open) {
+            void setDesktop(
+              { open: ids, focus: nextFocus },
+              { history: "replace" },
+            );
+          }
+        } else {
+          let nextFrames = sessionFrames;
+          let nextFocusOrder = sessionFocus;
+          const persistableOpen = sessionFrames
+            .map((frame) => frame.id)
+            .filter(isPersistableWindowId);
+          let nextOpen = persistableOpen;
+          let nextFocus =
+            sessionFocus.filter(isPersistableWindowId).at(-1) ??
+            persistableOpen.at(-1) ??
+            null;
+          if (query !== "" && !nextOpen.includes("find")) {
+            nextOpen = [...nextOpen, "find"];
+            nextFrames = [...sessionFrames, defaultFrame("find")];
+            nextFocusOrder = [
+              ...sessionFocus.filter((id) => id !== "find"),
+              "find",
+            ];
+            nextFocus = "find";
+          }
+          setFrames(nextFrames);
+          setFocusOrder(nextFocusOrder);
+          void setDesktop(
+            { open: nextOpen, focus: nextFocus },
+            { history: "replace" },
+          );
+        }
         hydratedUserRef.current = userId;
         setSessionReady(true);
       })
       .catch(() => {
         if (cancelled) return;
-        setFrames([]);
-        setFocusOrder([]);
+        chromeRef.current.clear();
+        const query = landing.q.trim();
+        if (landing.open !== null) {
+          const ids = withFind(landing.open, query);
+          const nextFocus =
+            landing.focus && ids.includes(landing.focus)
+              ? landing.focus
+              : (ids.at(-1) ?? null);
+          setFrames(ids.map(defaultFrame));
+          setFocusOrder(nextFocus ? moveToEnd(ids, nextFocus) : ids);
+          if (ids !== landing.open) {
+            void setDesktop(
+              { open: ids, focus: nextFocus },
+              { history: "replace" },
+            );
+          }
+        } else {
+          const nextOpen: PersistableWindowId[] = query !== "" ? ["find"] : [];
+          setFrames(nextOpen.map(defaultFrame));
+          setFocusOrder(nextOpen);
+          void setDesktop(
+            {
+              open: nextOpen,
+              focus: query !== "" ? "find" : null,
+            },
+            { history: "replace" },
+          );
+        }
         hydratedUserRef.current = userId;
         setSessionReady(true);
       });
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, me]);
+  }, [isAuthenticated, me, setDesktop]);
+
+  useEffect(() => {
+    for (const frame of frames) {
+      if (isPersistableWindowId(frame.id)) {
+        chromeRef.current.set(frame.id, frame);
+      }
+    }
+  }, [frames]);
+
+  useEffect(() => {
+    if (!sessionReady) return;
+    if (open === null) return;
+    setFrames((prev) => {
+      const transients = prev.filter(
+        (frame) => !isPersistableWindowId(frame.id),
+      );
+      const persistable = open.map((id) => {
+        const existing = prev.find((frame) => frame.id === id);
+        if (existing) return existing;
+        return chromeRef.current.get(id) ?? defaultFrame(id);
+      });
+      const next = [...persistable, ...transients];
+      if (
+        sameIdList(
+          prev.map((frame) => frame.id),
+          next.map((frame) => frame.id),
+        )
+      ) {
+        return prev;
+      }
+      return next;
+    });
+    setFocusOrder((prev) => {
+      const persistableStack =
+        focus && open.includes(focus) ? moveToEnd(open, focus) : open;
+      const transients = prev.filter((id) => !isPersistableWindowId(id));
+      const lastPrev = prev.at(-1);
+      const next =
+        lastPrev && transients.includes(lastPrev)
+          ? [
+              ...persistableStack.filter((id) => id !== lastPrev),
+              ...transients.filter((id) => id !== lastPrev),
+              lastPrev,
+            ]
+          : [...persistableStack, ...transients];
+      return sameIdList(prev, next) ? prev : next;
+    });
+  }, [focus, open, sessionReady]);
 
   useEffect(() => {
     if (!sessionReady || !me?._id) return;
@@ -385,6 +593,7 @@ export function DesktopShell() {
 
   useEffect(() => {
     if (!sessionReady) return;
+    if (skipInviteAutoOpenRef.current) return;
     if (openedInvitesRef.current) return;
     if (!pending || pending.length === 0) return;
     openedInvitesRef.current = true;
