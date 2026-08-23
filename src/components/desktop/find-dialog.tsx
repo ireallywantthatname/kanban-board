@@ -1,10 +1,12 @@
 "use client";
 
+import { useQueryState } from "nuqs";
 import { useEffect, useMemo, useState } from "react";
 import { Windows95SavedSearch } from "react-old-icons";
 import { AppWindow } from "@/components/window/app-window";
 import { boardLabel, isBoardId } from "@/lib/boards";
 import { useCachedWorksAll } from "@/lib/persist";
+import { desktopSearchParams } from "@/lib/url-state";
 import { cn } from "@/lib/utils";
 import type { WindowChrome, WindowId } from "@/lib/windows";
 import { workspaceWindowId } from "@/lib/windows";
@@ -36,7 +38,7 @@ export function FindDialog({
   onTitleDoubleClick,
 }: FindDialogProps) {
   const works = useCachedWorksAll();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useQueryState("q", desktopSearchParams.q);
   const [selectedId, setSelectedId] = useState<Id<"works"> | null>(null);
 
   const filtered = useMemo(() => {
