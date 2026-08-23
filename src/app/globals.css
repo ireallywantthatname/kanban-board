@@ -67,6 +67,12 @@ ul.tree-view {
   gap: 2px;
 }
 
+.titlebar-fly .title-bar-text {
+  margin-right: 0;
+  flex: 1;
+  min-width: 0;
+}
+
 .app-window > .title-bar .title-bar-text {
   display: flex;
   align-items: center;
@@ -188,7 +194,7 @@ body.work-dragging {
 }
 
 body.work-dragging * {
-  cursor: default !important;
+  cursor: default;
 }
 
 .taskbar {
@@ -275,6 +281,14 @@ body.work-dragging * {
   justify-content: flex-start;
 }
 
+.taskbar-app-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  text-align: left;
+}
+
 .taskbar-app-button.selected {
   font-weight: 700;
   box-shadow:
@@ -287,14 +301,6 @@ body.work-dragging * {
 .taskbar-app-button.selected .taskbar-app-label,
 .taskbar-app-button.selected svg {
   transform: translate(1px, 1px);
-}
-
-.taskbar-app-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-  text-align: left;
 }
 
 .taskbar-tray {
@@ -764,12 +770,6 @@ body.work-dragging * {
 
 .titlebar-fly {
   box-sizing: border-box;
-}
-
-.titlebar-fly .title-bar-text {
-  margin-right: 0;
-  flex: 1;
-  min-width: 0;
 }
 
 .board-add-form {
