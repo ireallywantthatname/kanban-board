@@ -20,6 +20,13 @@ export type WindowId =
   | `delete-ws:${string}`
   | `leave-ws:${string}`;
 
+export type PersistableWindowId =
+  | BoardId
+  | "find"
+  | "help"
+  | "invitations"
+  | `ws:${string}`;
+
 export type ParsedWindowId =
   | { kind: "board"; board: BoardId }
   | { kind: "workspace"; workspaceId: Id<"workspaces"> }
@@ -79,6 +86,14 @@ export function leaveWorkspaceWindowId(id: Id<"workspaces">): WindowId {
   return `leave-ws:${id}`;
 }
 
+const PERSISTABLE_KINDS = new Set<ParsedWindowId["kind"]>([
+  "board",
+  "workspace",
+  "find",
+  "help",
+  "invitations",
+]);
+
 export function parseWindowId(id: string): ParsedWindowId | null {
   if (isBoardId(id)) {
     return { kind: "board", board: id };
@@ -117,6 +132,11 @@ export function parseWindowId(id: string): ParsedWindowId | null {
     };
   }
   return null;
+}
+
+export function isPersistableWindowId(id: string): id is PersistableWindowId {
+  const parsed = parseWindowId(id);
+  return parsed !== null && PERSISTABLE_KINDS.has(parsed.kind);
 }
 
 const TITLES: Record<

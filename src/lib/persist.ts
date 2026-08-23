@@ -12,7 +12,7 @@ import {
   db,
 } from "@/lib/db";
 import type { WindowFrame, WindowGeom, WindowId } from "@/lib/window-shell";
-import { type ParsedWindowId, parseWindowId } from "@/lib/windows";
+import { isPersistableWindowId } from "@/lib/windows";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 
@@ -25,14 +25,6 @@ type WorksArgs =
   | { board: BoardId }
   | { workspaceId: Id<"workspaces"> }
   | "skip";
-
-const PERSISTABLE_KINDS = new Set<ParsedWindowId["kind"]>([
-  "board",
-  "workspace",
-  "find",
-  "help",
-  "invitations",
-]);
 
 function boardSnapshotKey(userId: string, board: BoardId) {
   return `board:${userId}:${board}`;
@@ -233,8 +225,7 @@ function parseFrame(value: unknown): WindowFrame | null {
   if (!value || typeof value !== "object") return null;
   const frame = value as Record<string, unknown>;
   if (typeof frame.id !== "string") return null;
-  const parsed = parseWindowId(frame.id);
-  if (!parsed || !PERSISTABLE_KINDS.has(parsed.kind)) return null;
+  if (!isPersistableWindowId(frame.id)) return null;
   if (typeof frame.minimized !== "boolean") return null;
   if (typeof frame.maximized !== "boolean") return null;
   let geom: WindowGeom | null = null;
@@ -260,10 +251,7 @@ export function persistableSession(
   frames: WindowFrame[],
   focusOrder: WindowId[],
 ): { frames: WindowFrame[]; focusOrder: WindowId[] } {
-  const nextFrames = frames.filter((frame) => {
-    const parsed = parseWindowId(frame.id);
-    return parsed !== null && PERSISTABLE_KINDS.has(parsed.kind);
-  });
+  const nextFrames = frames.filter((frame) => isPersistableWindowId(frame.id));
   const ids = new Set(nextFrames.map((frame) => frame.id));
   return {
     frames: nextFrames,
